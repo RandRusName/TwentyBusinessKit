@@ -35,7 +35,7 @@ invent them.
 
 ## Local Tests
 
-Run from `mikoton-commercial-proposals/`:
+Run from the repository root:
 
 ```powershell
 yarn.cmd install --immutable
@@ -140,7 +140,7 @@ CI uses:
 - workspace-scoped ephemeral App variables configured through the Twenty
   metadata API after sync; no target URL, target key or production secret is
   used by GitHub;
-- Node from `mikoton-commercial-proposals/.nvmrc`;
+- Node from `.nvmrc`;
 - `yarn install --immutable`;
 - lint, typecheck, unit tests, secrets/private-url scans as configured,
   real integration tests, app build and tarball validation.

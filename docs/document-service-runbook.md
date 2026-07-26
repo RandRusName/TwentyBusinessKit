@@ -19,7 +19,7 @@ deploy/smoke remains **NOT DONE**.
 
 ## Local Python Run
 
-From `mikoton-commercial-proposals/`:
+From the repository root:
 
 ```powershell
 $env:PYTHONPATH = (Resolve-Path .\document-service).Path

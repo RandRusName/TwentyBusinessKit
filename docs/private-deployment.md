@@ -25,7 +25,7 @@ against an ephemeral Twenty instance, and tarball build only.
 
 ## One-Click Deploy
 
-From `mikoton-commercial-proposals/` on Windows:
+From the repository root on Windows:
 
 ```cmd
 deploy.bat
