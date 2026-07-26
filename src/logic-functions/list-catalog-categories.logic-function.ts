@@ -4,7 +4,7 @@ import type { RoutePayload } from 'twenty-sdk/logic-function';
 import { LIST_CATALOG_CATEGORIES_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { failure, json, toApplicationError } from 'src/logic-functions/http-response';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
-import { TwentyCatalogQueryAdapter } from 'src/modules/catalog/infrastructure/twenty-catalog-query.adapter';
+import { TwentyCatalogQueryAdapter } from 'src/modules/catalog';
 
 type ListCatalogCategoriesRequest = {
   activeOnly?: boolean;

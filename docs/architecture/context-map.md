@@ -24,7 +24,7 @@ flowchart TB
   Sales --> Proposals
   Catalog --> Proposals
   Documents --> Proposals
-  Proposals --> Documents
+  Proposals -.->|generation requests| Documents
   Documents --> Worker
   Worker --> Storage
   Worker --> Pdf

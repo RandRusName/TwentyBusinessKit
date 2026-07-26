@@ -8,7 +8,7 @@ import {
   json,
   toApplicationError,
 } from 'src/logic-functions/http-response';
-import { TwentySalesContextAdapter } from 'src/modules/sales/infrastructure/twenty-sales-context.adapter';
+import { TwentySalesContextAdapter } from 'src/modules/sales';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
 
 type OpportunityContextRequest = {

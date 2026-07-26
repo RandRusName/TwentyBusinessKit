@@ -21,14 +21,24 @@ Twenty owns the CRM shell, standard records, permissions and API execution.
 The App owns its custom metadata and business rules. External services provide
 technical capabilities only.
 
+## Module registry and public APIs
+
+- Registry: `src/modules/registry.ts` (`APP_MODULES` / helpers).
+- Public API convention: other code imports only `src/modules/<module>`
+  (see each module's `index.ts`).
+- New module guide: `docs/architecture/new-module-guide.md`.
+- Module docs index: `docs/modules/README.md`.
+
 ## Phase 6.0 State
 
 - Existing metadata identifiers and production behavior are unchanged.
 - Module contracts, adapters and a registry exist under `src/modules`.
-- Compatibility primitives begin under `src/platform`.
+- Compatibility primitives begin under `src/platform` and are re-exported via
+  Foundation's public API.
 - CI runs `yarn test:architecture` before unit tests.
-- Legacy folders remain during incremental migration; no big-bang move is
-  permitted.
+- Legacy folders (`src/domain`, `src/services`, `src/logic-functions`,
+  `src/front-components`, …) remain during incremental migration; no big-bang
+  move is permitted.
 
 See the context map, module boundaries, dependency rules and migration plan in
 this directory.

@@ -3,7 +3,7 @@ import {
   calculateProposalLineAmount,
   sumLineAmounts,
 } from 'src/domain/commercial-proposal-money';
-import type { DocumentGenerationPort } from 'src/modules/documents/domain/document-generation-port';
+import type { DocumentGenerationPort } from 'src/modules/documents';
 
 export const SUPPORTED_TEMPLATE_CODE = 'standard-commercial-proposal';
 export const SUPPORTED_LANGUAGE = 'ru-RU';

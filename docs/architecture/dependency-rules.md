@@ -13,12 +13,26 @@ foundation + sales + catalog + documents <- commercial-proposals
 Forbidden:
 
 - Foundation importing a business module.
-- Sales, Catalog or Documents importing Commercial Proposals.
+- Sales, Catalog, Documents, Administration or platform importing Commercial
+  Proposals.
 - Cycles between modules.
 - Module domain code importing React, Twenty SDK, HTTP or `process.env`.
+- Cross-module deep imports into another module's `domain` /
+  `application` / `infrastructure` (use `src/modules/<module>` only).
 - Presentation code importing document-service internals directly.
 
-`scripts/test-architecture.mjs` scans imports, detects module cycles and asserts
-that current generation, catalog and Opportunity routes use their module
-adapters. The gate intentionally permits documented legacy-folder adapters
-during migration. Its scope tightens as files move into modules.
+## Enforcement
+
+`scripts/test-architecture.mjs` checks:
+
+- platform cannot import modules;
+- reusable modules cannot import Commercial Proposals;
+- import graph cycles;
+- domain platform-independence;
+- public API boundaries (deep cross-module imports);
+- registry consistency (unique ids, known dependencies, public API files,
+  commercial-proposals dependency set);
+- generation / catalog / Opportunity routes use module public APIs.
+
+The gate may keep a tiny `LEGACY_DEEP_IMPORT_ALLOWLIST` during migration; shrink
+it as consumers move to public entrypoints.

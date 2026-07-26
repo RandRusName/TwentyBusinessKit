@@ -4,11 +4,11 @@ import type { RoutePayload } from 'twenty-sdk/logic-function';
 import { SEARCH_CATALOG_ITEMS_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { failure, json, toApplicationError } from 'src/logic-functions/http-response';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
-import type { CatalogSearchRequest } from 'src/modules/catalog/application/catalog-query.port';
+import type { CatalogSearchRequest } from 'src/modules/catalog';
 import {
   TwentyCatalogQueryAdapter,
   normalizeCatalogSearchRequest,
-} from 'src/modules/catalog/infrastructure/twenty-catalog-query.adapter';
+} from 'src/modules/catalog';
 
 const handler = async (event: RoutePayload<CatalogSearchRequest>) => {
   const logger = createLogicFunctionLogger('search-catalog-items');

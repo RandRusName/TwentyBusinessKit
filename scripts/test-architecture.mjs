@@ -5,6 +5,24 @@ const root = process.cwd();
 const srcRoot = path.join(root, 'src');
 const sourceExtensions = new Set(['.ts', '.tsx']);
 
+const KNOWN_MODULES = [
+  'foundation',
+  'sales',
+  'catalog',
+  'documents',
+  'commercial-proposals',
+  'administration',
+];
+
+/**
+ * Deep imports that remain during incremental migration.
+ * Prefer public entrypoints (`src/modules/<id>`). Shrink this list as files move.
+ */
+const LEGACY_DEEP_IMPORT_ALLOWLIST = new Set([
+  // Intra-module wiring is allowed by the public-API rule; keep empty unless
+  // an outside consumer still needs a temporary deep path.
+]);
+
 const walk = (directory) =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const absolute = path.join(directory, entry.name);
@@ -24,10 +42,37 @@ const importsOf = (source) =>
 const moduleFromPath = (value) => {
   const normalized = value.replaceAll('\\', '/');
   const match = normalized.match(/(?:^|\/)modules\/([^/]+)/);
-  return match?.[1] ?? null;
+  const candidate = match?.[1] ?? null;
+  if (candidate === null || candidate === 'registry.ts' || candidate === 'registry') {
+    return null;
+  }
+  if (!KNOWN_MODULES.includes(candidate)) {
+    return null;
+  }
+  return candidate;
+};
+
+const isPublicModuleImport = (imported, targetModule) => {
+  const normalized = imported.replaceAll('\\', '/');
+  return (
+    normalized === `src/modules/${targetModule}` ||
+    normalized === `src/modules/${targetModule}/index` ||
+    normalized === `src/modules/${targetModule}/index.ts`
+  );
+};
+
+const isDeepModuleImport = (imported, targetModule) => {
+  const normalized = imported.replaceAll('\\', '/');
+  if (!normalized.startsWith(`src/modules/${targetModule}/`)) {
+    return false;
+  }
+  return !isPublicModuleImport(imported, targetModule);
 };
 
 const moduleGraph = new Map();
+for (const moduleId of KNOWN_MODULES) {
+  moduleGraph.set(moduleId, new Set());
+}
 
 for (const file of files) {
   const relative = path.relative(root, file).replaceAll('\\', '/');
@@ -47,17 +92,52 @@ for (const file of files) {
     const dependencies = moduleGraph.get(owner) ?? new Set();
     for (const imported of imports) {
       const dependency = moduleFromPath(imported);
-      if (dependency !== null && dependency !== owner) dependencies.add(dependency);
+      if (dependency !== null && dependency !== owner) {
+        dependencies.add(dependency);
+      }
     }
     moduleGraph.set(owner, dependencies);
   }
 
-  if (['catalog', 'documents', 'sales'].includes(owner ?? '')) {
+  const reusableModules = [
+    'foundation',
+    'sales',
+    'catalog',
+    'documents',
+    'administration',
+  ];
+  if (reusableModules.includes(owner ?? '') || relative.startsWith('src/platform/')) {
     for (const imported of imports) {
-      if (imported.startsWith('src/modules/commercial-proposals/')) {
-        failures.push(`${relative}: ${owner} cannot import Commercial Proposals`);
+      if (
+        imported === 'src/modules/commercial-proposals' ||
+        imported.startsWith('src/modules/commercial-proposals/')
+      ) {
+        failures.push(
+          `${relative}: ${owner ?? 'platform'} cannot import Commercial Proposals`,
+        );
       }
     }
+  }
+
+  for (const imported of imports) {
+    const targetModule = moduleFromPath(imported);
+    if (targetModule === null) {
+      continue;
+    }
+    if (!isDeepModuleImport(imported, targetModule)) {
+      continue;
+    }
+    // Intra-module deep imports are allowed (application <-> infrastructure).
+    if (owner === targetModule) {
+      continue;
+    }
+    const allowKey = `${relative} -> ${imported}`;
+    if (LEGACY_DEEP_IMPORT_ALLOWLIST.has(allowKey)) {
+      continue;
+    }
+    failures.push(
+      `${relative}: cross-module deep import ${imported} (use src/modules/${targetModule})`,
+    );
   }
 
   if (relative.match(/^src\/modules\/[^/]+\/domain\//)) {
@@ -94,16 +174,87 @@ const requireText = (relative, expected) => {
 
 requireText(
   'src/logic-functions/generate-commercial-proposal.logic-function.ts',
-  'src/modules/documents/infrastructure/http-document-service.adapter',
+  'src/modules/documents',
 );
 requireText(
   'src/logic-functions/get-opportunity-context.logic-function.ts',
-  'src/modules/sales/infrastructure/twenty-sales-context.adapter',
+  'src/modules/sales',
 );
 requireText(
   'src/logic-functions/search-catalog-items.logic-function.ts',
-  'src/modules/catalog/infrastructure/twenty-catalog-query.adapter',
+  'src/modules/catalog',
 );
+
+// Registry consistency (parsed without TypeScript execution).
+const registryPath = path.join(root, 'src/modules/registry.ts');
+const registrySource = fs.readFileSync(registryPath, 'utf8');
+const moduleBlockMatches = [
+  ...registrySource.matchAll(
+    /\{\s*id:\s*'([^']+)'[\s\S]*?dependsOn:\s*\[([^\]]*)\][\s\S]*?status:\s*'([^']+)'[\s\S]*?publicApi:\s*'([^']+)'/g,
+  ),
+];
+
+if (moduleBlockMatches.length === 0) {
+  failures.push('src/modules/registry.ts: could not parse APP_MODULES definitions');
+} else {
+  const ids = moduleBlockMatches.map((match) => match[1]);
+  if (new Set(ids).size !== ids.length) {
+    failures.push('src/modules/registry.ts: duplicate module ids');
+  }
+  for (const expected of KNOWN_MODULES) {
+    if (!ids.includes(expected)) {
+      failures.push(`src/modules/registry.ts: missing module ${expected}`);
+    }
+  }
+
+  const dependsOnById = new Map();
+  for (const match of moduleBlockMatches) {
+    const id = match[1];
+    const dependsOn = [...match[2].matchAll(/'([^']+)'/g)].map((item) => item[1]);
+    dependsOnById.set(id, dependsOn);
+    for (const dependency of dependsOn) {
+      if (!ids.includes(dependency)) {
+        failures.push(
+          `src/modules/registry.ts: ${id} depends on unknown module ${dependency}`,
+        );
+      }
+    }
+    const publicApi = match[4];
+    if (!fs.existsSync(path.join(root, publicApi))) {
+      failures.push(`src/modules/registry.ts: missing public API file ${publicApi}`);
+    }
+  }
+
+  const proposalDeps = dependsOnById.get('commercial-proposals') ?? [];
+  for (const required of ['foundation', 'sales', 'catalog', 'documents']) {
+    if (!proposalDeps.includes(required)) {
+      failures.push(
+        `src/modules/registry.ts: commercial-proposals must depend on ${required}`,
+      );
+    }
+  }
+
+  for (const [id, dependsOn] of dependsOnById.entries()) {
+    if (id !== 'commercial-proposals' && dependsOn.includes('commercial-proposals')) {
+      failures.push(
+        `src/modules/registry.ts: ${id} must not depend on commercial-proposals`,
+      );
+    }
+  }
+
+  const registryVisit = (module, trail = []) => {
+    if (trail.includes(module)) {
+      failures.push(
+        `src/modules/registry.ts: dependency cycle ${[...trail, module].join(' -> ')}`,
+      );
+      return;
+    }
+    for (const dependency of dependsOnById.get(module) ?? []) {
+      registryVisit(dependency, [...trail, module]);
+    }
+  };
+  for (const id of ids) registryVisit(id);
+}
 
 if (failures.length > 0) {
   console.error('Architecture checks failed:');
@@ -112,5 +263,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Architecture checks passed for ${files.length} TypeScript source files and ${moduleGraph.size} module boundaries.`,
+  `Architecture checks passed for ${files.length} TypeScript source files and ${KNOWN_MODULES.length} module boundaries.`,
 );

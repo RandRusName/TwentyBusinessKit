@@ -1,14 +1,18 @@
 import {
   COMPATIBILITY_SETTINGS_DEFAULTS,
-} from 'src/modules/administration/application/crm-application-settings';
+} from 'src/modules/administration';
 import {
+  APP_MODULES,
   CRM_MODULES,
+  getAppModuleById,
   getCrmModule,
+  listAppModules,
+  listModuleDependencies,
 } from 'src/modules/registry';
 import {
   TWENTY_COMPATIBILITY,
   isSupportedTwentyVersion,
-} from 'src/platform/compatibility/twenty-compatibility';
+} from 'src/modules/foundation';
 import { describe, expect, it } from 'vitest';
 
 describe('CRM application architecture foundation', () => {
@@ -16,10 +20,15 @@ describe('CRM application architecture foundation', () => {
     const moduleCodes = CRM_MODULES.map(({ code }) => code);
 
     expect(new Set(moduleCodes).size).toBe(moduleCodes.length);
+    expect(listAppModules()).toEqual(APP_MODULES);
     for (const module of CRM_MODULES) {
       for (const dependency of module.dependencies) {
         expect(getCrmModule(dependency).code).toBe(dependency);
       }
+      expect(getAppModuleById(module.id).publicApi).toContain(
+        `src/modules/${module.id}/`,
+      );
+      expect(listModuleDependencies(module.id)).toEqual(module.dependsOn);
     }
   });
 

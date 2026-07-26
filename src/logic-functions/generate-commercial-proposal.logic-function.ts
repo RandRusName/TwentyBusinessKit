@@ -12,7 +12,7 @@ import {
   json,
   toApplicationError,
 } from 'src/logic-functions/http-response';
-import { HttpDocumentServiceAdapter } from 'src/modules/documents/infrastructure/http-document-service.adapter';
+import { HttpDocumentServiceAdapter } from 'src/modules/documents';
 import { TwentyRecordRepository } from 'src/services/twenty-record-repository';
 import {
   createLogicFunctionLogger,
