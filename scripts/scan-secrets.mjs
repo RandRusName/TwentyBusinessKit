@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const repositoryRoot = resolve(import.meta.dirname, '..', '..');
+const repositoryRoot = resolve(import.meta.dirname, '..');
 const tracked = execFileSync('git', ['ls-files', '-z'], {
   cwd: repositoryRoot,
   encoding: 'utf8',

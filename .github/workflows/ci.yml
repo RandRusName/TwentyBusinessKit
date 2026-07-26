@@ -12,10 +12,6 @@ permissions:
 env:
   TWENTY_VERSION: v2.20.0
 
-defaults:
-  run:
-    working-directory: mikoton-commercial-proposals
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -112,7 +108,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version-file: mikoton-commercial-proposals/.nvmrc
+          node-version-file: .nvmrc
 
       - name: Enable Corepack
         run: corepack enable
