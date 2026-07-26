@@ -1,0 +1,2 @@
+# Bash scripts must keep LF so WSL can execute them from the Windows checkout.
+*.sh text eol=lf
