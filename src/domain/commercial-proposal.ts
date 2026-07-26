@@ -4,6 +4,8 @@ import {
   sumLineAmounts,
 } from 'src/domain/commercial-proposal-money';
 import type { DocumentGenerationPort } from 'src/modules/documents';
+import { ApplicationError } from 'src/modules/foundation';
+import type { OpportunityContext } from 'src/modules/sales';
 
 export const SUPPORTED_TEMPLATE_CODE = 'standard-commercial-proposal';
 export const SUPPORTED_LANGUAGE = 'ru-RU';
@@ -23,65 +25,8 @@ export type CommercialProposalContentModelVersion =
   | 'LEGACY_V1'
   | 'AGGREGATE_V2';
 
-export type ApplicationErrorCode =
-  | 'INVALID_INPUT'
-  | 'UNSUPPORTED_SOURCE'
-  | 'OPPORTUNITY_NOT_FOUND'
-  | 'OPPORTUNITY_FORBIDDEN'
-  | 'DUPLICATE_REQUEST'
-  | 'COMMERCIAL_PROPOSAL_CREATE_FAILED'
-  | 'COMMERCIAL_PROPOSAL_NOT_FOUND'
-  | 'COMMERCIAL_PROPOSAL_FORBIDDEN'
-  | 'COMMERCIAL_PROPOSAL_INVALID_STATUS'
-  | 'COMMERCIAL_PROPOSAL_NUMBER_LIMIT_REACHED'
-  | 'COMMERCIAL_PROPOSAL_CHILD_FORBIDDEN'
-  | 'COMMERCIAL_PROPOSAL_CHILD_NOT_FOUND'
-  | 'COMMERCIAL_PROPOSAL_CHILD_IDENTITY_CONFLICT'
-  | 'COMMERCIAL_PROPOSAL_DATA_INTEGRITY_ERROR'
-  | 'COMMERCIAL_PROPOSAL_EDITOR_CONFLICT'
-  | 'COMMERCIAL_PROPOSAL_VALIDATION_FAILED'
-  | 'COMMERCIAL_PROPOSAL_SAVE_FAILED'
-  | 'CATALOG_ITEM_NOT_FOUND'
-  | 'CATALOG_ITEM_NOT_SELECTABLE'
-  | 'CATALOG_SEARCH_FAILED'
-  | 'COMMERCIAL_PROPOSAL_GENERATION_MODEL_NOT_SUPPORTED'
-  | 'COMMERCIAL_PROPOSAL_GENERATION_VALIDATION_FAILED'
-  | 'COMMERCIAL_PROPOSAL_GENERATION_IN_PROGRESS'
-  | 'COMMERCIAL_PROPOSAL_GENERATION_OWNERSHIP_LOST'
-  | 'DOCUMENT_SCHEMA_TEMPLATE_MISMATCH'
-  | 'SNAPSHOT_HASH_MISMATCH'
-  | 'GENERATION_IDEMPOTENCY_CONFLICT'
-  | 'DOCUMENT_SERVICE_UNAVAILABLE'
-  | 'DOCUMENT_SERVICE_TIMEOUT'
-  | 'DOCUMENT_SERVICE_FORBIDDEN'
-  | 'DOCUMENT_SERVICE_INVALID_RESPONSE'
-  | 'DOCUMENT_GENERATION_FAILED'
-  | 'DOCUMENT_STORAGE_FAILED'
-  | 'PDF_EXPORT_FAILED'
-  | 'INTERNAL_ERROR';
-
-export class ApplicationError extends Error {
-  constructor(
-    readonly code: ApplicationErrorCode,
-    message: string,
-    readonly cause?: unknown,
-    readonly details?: { path: string; message: string },
-  ) {
-    super(message);
-    this.name = 'ApplicationError';
-  }
-}
-
-export type OpportunityContext = {
-  id: string;
-  name: string;
-  company: {
-    id: string;
-    name: string;
-  } | null;
-  amount: number | null;
-  currencyCode: string | null;
-};
+// TODO: Remaining proposal contracts in this legacy file should migrate under
+// src/modules/commercial-proposals/domain in incremental commits.
 
 export type DraftPayloadSnapshot = {
   source: {

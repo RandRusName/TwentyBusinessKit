@@ -1,10 +1,6 @@
-import {
-  ApplicationError,
-  canonicalJson,
-  sha256Hex,
-  type CommercialProposalDraft,
-} from 'src/domain/commercial-proposal';
 import type { CommercialProposalAggregate } from 'src/domain/commercial-proposal-aggregate';
+import { ApplicationError } from 'src/modules/foundation';
+import { canonicalJson, sha256Hex, type CommercialProposalDraft } from 'src/domain/commercial-proposal';
 
 /** Base lease; owners renew at irreversible checkpoints. */
 export const GENERATION_CLAIM_LEASE_MS = 10 * 60 * 1000;

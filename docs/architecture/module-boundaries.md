@@ -3,19 +3,23 @@
 ## Foundation
 
 Owns errors, identifiers, money/date/pagination conventions, logging,
-localization and compatibility. It imports no business module. Public API:
+localization and compatibility — including `ApplicationError` /
+`ApplicationErrorCode`. It imports no business module. Public API:
 `src/modules/foundation`.
 
 ## Sales
 
-Adapts Twenty Company, Person and Opportunity. It does not duplicate those
-objects and does not know proposal lifecycle. Public API: `src/modules/sales`.
+Adapts Twenty Company, Person and Opportunity. Owns `OpportunityContext`.
+It does not duplicate CRM objects and does not know proposal lifecycle.
+Public API: `src/modules/sales`.
 
 ## Catalog
 
-Owns CatalogItem lifecycle, validation and query/selection contracts. Catalog
+Owns CatalogItem lifecycle, validation and query/selection contracts
+(`CatalogItemDto`, search request/result types, normalize helpers). Catalog
 items provide defaults; saved proposal lines remain snapshots. Public API:
-`src/modules/catalog`.
+`src/modules/catalog`. Legacy `src/services/catalog-item-repository.ts` remains
+an infrastructure detail behind the Catalog adapter.
 
 ## Commercial Proposals
 
@@ -24,6 +28,9 @@ generation command and generated-file association. It may depend on Foundation,
 Sales, Catalog and Documents through their public APIs only. Public API:
 `src/modules/commercial-proposals`. Product detail:
 `docs/modules/commercial-proposals.md`.
+
+Legacy `src/domain/commercial-proposal.ts` still holds proposal-owned contracts
+during migration and must not be imported by reusable modules.
 
 ## Documents
 

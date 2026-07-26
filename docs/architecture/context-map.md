@@ -23,8 +23,7 @@ flowchart TB
   Foundation --> Admin
   Sales --> Proposals
   Catalog --> Proposals
-  Documents --> Proposals
-  Proposals -.->|generation requests| Documents
+  Proposals --> Documents
   Documents --> Worker
   Worker --> Storage
   Worker --> Pdf
@@ -32,9 +31,9 @@ flowchart TB
 
 | Relationship | Owner | Direction / contract | Consistency | Failure behavior |
 |---|---|---|---|---|
-| Twenty -> Sales | Twenty | `OpportunityContextQuery` | Read current record | Safe not-found/forbidden |
-| Catalog -> Proposals | Catalog | catalog query/selection DTO | Values copied into proposal snapshot | Selection rejected safely |
-| Proposals -> Documents | Proposals | `DocumentGenerationPort` | Idempotent request + manifest | Proposal becomes FAILED or remains retryable |
+| Twenty -> Sales | Sales | `OpportunityContext` / `OpportunityContextQuery` | Read current record | Safe not-found/forbidden |
+| Catalog -> Proposals | Catalog | catalog query/selection DTO (Catalog-owned types) | Values copied into proposal snapshot | Selection rejected safely |
+| Proposals -> Documents | Documents | `DocumentGenerationPort` | Idempotent request + manifest | Proposal becomes FAILED or remains retryable |
 | Documents -> worker | Documents | authenticated HTTP adapter | Request id and snapshot hash | Timeout/invalid response mapped to typed error |
 | worker -> MinIO | Documents capability | private S3-compatible API | Immutable generation key | Readiness false / upload failure |
 | worker -> LibreOffice | Documents capability | isolated subprocess | XLSX is source for PDF | Structured PDF export failure |

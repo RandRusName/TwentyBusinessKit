@@ -1,24 +1,4 @@
 import {
-  ApplicationError,
-  buildDraftTechnicalNumber,
-  buildDocumentGenerationPayload,
-  buildCommercialProposalNumber,
-  buildCommercialProposalFinalNumberKey,
-  createCommercialProposalDraft,
-  generateCommercialProposalDocuments,
-  getNextCommercialProposalSequence,
-  getNextCommercialProposalSequenceFromKeys,
-  getCommercialProposalBusinessDate,
-  normalizeCreateDraftRequest,
-  normalizeGenerateCommercialProposalRequest,
-  parseCommercialProposalNumber,
-  SUPPORTED_LANGUAGE,
-  SUPPORTED_TEMPLATE_CODE,
-  type CommercialProposalDraft,
-  type CommercialProposalGenerationFile,
-  type CommercialProposalRepository,
-} from 'src/domain/commercial-proposal';
-import {
   buildCreateDraftRequest,
   CREATE_IDEMPOTENCY_KEY_ERROR,
   createIdempotencyKey,
@@ -53,6 +33,8 @@ import {
 import { calculateProposalLineAmount } from 'src/domain/commercial-proposal-money';
 import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApplicationError } from 'src/modules/foundation';
+import { buildDraftTechnicalNumber, buildDocumentGenerationPayload, buildCommercialProposalNumber, buildCommercialProposalFinalNumberKey, createCommercialProposalDraft, generateCommercialProposalDocuments, getNextCommercialProposalSequence, getNextCommercialProposalSequenceFromKeys, getCommercialProposalBusinessDate, normalizeCreateDraftRequest, normalizeGenerateCommercialProposalRequest, parseCommercialProposalNumber, SUPPORTED_LANGUAGE, SUPPORTED_TEMPLATE_CODE, type CommercialProposalDraft, type CommercialProposalGenerationFile, type CommercialProposalRepository } from 'src/domain/commercial-proposal';
 
 const fixedDate = new Date('2026-07-12T10:11:12.000Z');
 const idempotencyKey = '123e4567-e89b-12d3-a456-426614174000';

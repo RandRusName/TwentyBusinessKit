@@ -2,14 +2,6 @@ import { CoreApiClient } from 'twenty-client-sdk/core';
 import { createHash } from 'node:crypto';
 
 import type {
-  ApplicationErrorCode,
-  CommercialProposalGenerationFile,
-  CommercialProposalDraft,
-  CommercialProposalRepository,
-  OpportunityContext,
-} from 'src/domain/commercial-proposal';
-import { ApplicationError } from 'src/domain/commercial-proposal';
-import type {
   CommercialProposalAggregate,
   CommercialProposalAggregateRepository,
   CommercialProposalContentModelVersion,
@@ -21,6 +13,9 @@ import type {
 } from 'src/domain/commercial-proposal-aggregate';
 import { ATTACHMENT_FIELD_FILE_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { resolveCatalogItemPrice } from 'src/services/catalog-item-repository';
+import { ApplicationError, type ApplicationErrorCode } from 'src/modules/foundation';
+import type { OpportunityContext } from 'src/modules/sales';
+import type { CommercialProposalGenerationFile, CommercialProposalDraft, CommercialProposalRepository } from 'src/domain/commercial-proposal';
 
 type CoreClient = InstanceType<typeof CoreApiClient>;
 

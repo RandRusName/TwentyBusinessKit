@@ -3,17 +3,13 @@ import { type RoutePayload } from 'twenty-sdk/logic-function';
 
 import { CREATE_COMMERCIAL_PROPOSAL_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import {
-  createCommercialProposalDraft,
-  normalizeCreateDraftRequest,
-  type CreateDraftRequest,
-} from 'src/domain/commercial-proposal';
-import {
   failure,
   json,
   toApplicationError,
 } from 'src/logic-functions/http-response';
 import { TwentyRecordRepository } from 'src/services/twenty-record-repository';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
+import { createCommercialProposalDraft, normalizeCreateDraftRequest, type CreateDraftRequest } from 'src/domain/commercial-proposal';
 
 const handler = async (
   event: RoutePayload<Partial<CreateDraftRequest>>,

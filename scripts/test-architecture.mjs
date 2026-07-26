@@ -116,6 +116,14 @@ for (const file of files) {
           `${relative}: ${owner ?? 'platform'} cannot import Commercial Proposals`,
         );
       }
+      if (
+        imported === 'src/domain/commercial-proposal' ||
+        imported.startsWith('src/domain/commercial-proposal/')
+      ) {
+        failures.push(
+          `${relative}: ${owner ?? 'platform'} cannot import proposal legacy domain`,
+        );
+      }
     }
   }
 

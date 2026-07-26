@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { DocumentGenerationPayloadV2 } from 'src/domain/commercial-proposal';
 import { validateDocumentServiceSuccessResponse } from 'src/services/document-service-client';
+import type { DocumentGenerationPayloadV2 } from 'src/domain/commercial-proposal';
 
 const payload: DocumentGenerationPayloadV2 = {
   schemaVersion: '2.0',

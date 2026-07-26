@@ -1,7 +1,7 @@
-import {
-  ApplicationError,
-  type CommercialProposalDraft,
-  type CommercialProposalStatus,
+import { ApplicationError } from 'src/modules/foundation';
+import type {
+  CommercialProposalDraft,
+  CommercialProposalStatus,
 } from 'src/domain/commercial-proposal';
 import {
   calculateProposalLineAmount,
@@ -398,7 +398,6 @@ export const normalizeRecalculateRequest = (
       'items must be an array',
     );
   }
-
 
   assertPlainObjectEntries(body.items, 'items');
 

@@ -6,11 +6,20 @@
  */
 
 export type {
-  CatalogQueryService,
+  CatalogItemDto,
+  CatalogItemType,
+} from './domain/catalog-item';
+export { CATALOG_ITEM_TYPES } from './domain/catalog-item';
+export type {
   CatalogSearchRequest,
   CatalogSearchResult,
-} from './application/catalog-query.port';
+  NormalizedCatalogSearchRequest,
+} from './application/catalog-search.types';
+export type { CatalogQueryService } from './application/catalog-query.port';
 export {
-  TwentyCatalogQueryAdapter,
+  buildCatalogFilterFingerprint,
+  decodeCatalogCursor,
+  encodeCatalogCursor,
   normalizeCatalogSearchRequest,
-} from './infrastructure/twenty-catalog-query.adapter';
+} from './application/normalize-catalog-search-request';
+export { TwentyCatalogQueryAdapter } from './infrastructure/twenty-catalog-query.adapter';

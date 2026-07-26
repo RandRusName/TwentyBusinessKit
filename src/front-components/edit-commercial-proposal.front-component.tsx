@@ -36,10 +36,6 @@ import type {
   SaveEditorRequest,
   SaveEditorResult,
 } from 'src/domain/commercial-proposal-aggregate';
-import type {
-  CommercialProposalDraft,
-  CommercialProposalResultMetadata,
-} from 'src/domain/commercial-proposal';
 import {
   applyCanonicalResponse,
   buildSaveRequest,
@@ -80,6 +76,10 @@ import {
   callAppRoute,
   isApplicationError,
 } from 'src/front-components/utils/call-app-route';
+import type {
+  CommercialProposalDraft,
+  CommercialProposalResultMetadata,
+} from 'src/domain/commercial-proposal';
 
 const ERROR_MESSAGE_BY_CODE: Record<string, string> = {
   COMMERCIAL_PROPOSAL_EDITOR_CONFLICT: 'The proposal was changed in another tab or operation.',

@@ -33,12 +33,15 @@ technical capabilities only.
 
 - Existing metadata identifiers and production behavior are unchanged.
 - Module contracts, adapters and a registry exist under `src/modules`.
+- Foundation owns `ApplicationError`; Sales owns `OpportunityContext`; Catalog
+  owns catalog query contracts.
 - Compatibility primitives begin under `src/platform` and are re-exported via
   Foundation's public API.
 - CI runs `yarn test:architecture` before unit tests.
 - Legacy folders (`src/domain`, `src/services`, `src/logic-functions`,
   `src/front-components`, …) remain during incremental migration; no big-bang
-  move is permitted.
+  move is permitted. Reusable modules must not import
+  `src/domain/commercial-proposal`.
 
 See the context map, module boundaries, dependency rules and migration plan in
 this directory.

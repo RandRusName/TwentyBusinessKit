@@ -5,8 +5,8 @@ import {
   renewGenerationClaimLease,
   type GenerationClaimRecord,
 } from 'src/domain/generation-claim';
-import { ApplicationError } from 'src/domain/commercial-proposal';
 import { describe, expect, it, vi } from 'vitest';
+import { ApplicationError } from 'src/modules/foundation';
 
 const proposalKey = '123e4567-e89b-42d3-a456-426614174002';
 

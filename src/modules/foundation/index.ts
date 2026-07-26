@@ -1,11 +1,14 @@
 /**
  * Foundation public API.
  *
- * Shared platform primitives currently live under `src/platform` and migrate
- * here incrementally. Other modules must import Foundation only through this
- * entrypoint (or `src/modules/foundation`).
+ * Shared platform primitives. Other modules must import Foundation only through
+ * this entrypoint (or `src/modules/foundation`).
  */
 
+export {
+  ApplicationError,
+  type ApplicationErrorCode,
+} from './domain/application-error';
 export {
   TWENTY_COMPATIBILITY,
   isSupportedTwentyVersion,

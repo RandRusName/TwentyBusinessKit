@@ -1,7 +1,4 @@
-import {
-  SUPPORTED_LANGUAGE,
-  SUPPORTED_TEMPLATE_CODE,
-} from 'src/domain/commercial-proposal';
+import { SUPPORTED_LANGUAGE, SUPPORTED_TEMPLATE_CODE } from 'src/domain/commercial-proposal';
 
 export const CREATE_IDEMPOTENCY_KEY_ERROR =
   'Ваш браузер не поддерживает безопасную генерацию идентификатора операции';

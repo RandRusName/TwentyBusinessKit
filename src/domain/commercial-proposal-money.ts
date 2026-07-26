@@ -1,4 +1,4 @@
-import { ApplicationError } from 'src/domain/commercial-proposal';
+import { ApplicationError } from 'src/modules/foundation';
 
 type DecimalSpec = {
   fieldName: string;

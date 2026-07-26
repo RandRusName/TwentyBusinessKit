@@ -2,7 +2,6 @@ import { defineLogicFunction, HTTPMethod } from 'twenty-sdk/define';
 import { type RoutePayload } from 'twenty-sdk/logic-function';
 
 import { GET_OPPORTUNITY_CONTEXT_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
-import { ApplicationError } from 'src/domain/commercial-proposal';
 import {
   failure,
   json,
@@ -10,6 +9,7 @@ import {
 } from 'src/logic-functions/http-response';
 import { TwentySalesContextAdapter } from 'src/modules/sales';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
+import { ApplicationError } from 'src/modules/foundation';
 
 type OpportunityContextRequest = {
   opportunityId?: string;

@@ -1,9 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
-import {
-  SUPPORTED_LANGUAGE,
-  SUPPORTED_TEMPLATE_CODE,
-} from 'src/domain/commercial-proposal';
+import { SUPPORTED_LANGUAGE, SUPPORTED_TEMPLATE_CODE } from 'src/domain/commercial-proposal';
 
 type CreatedRecord = {
   id: string;

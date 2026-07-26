@@ -9,10 +9,6 @@ import {
 } from 'twenty-sdk/front-component';
 
 import { GENERATE_COMMERCIAL_PROPOSAL_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
-import type {
-  CommercialProposalDraft,
-  CommercialProposalResultMetadata,
-} from 'src/domain/commercial-proposal';
 import { getGeneratedDocumentFileUrl } from 'src/front-components/commercial-proposal-editor/editor-helpers';
 import {
   createIdempotencyKey,
@@ -21,6 +17,7 @@ import {
 } from 'src/front-components/create-commercial-proposal.helpers';
 import type { EditorContextResponse } from 'src/front-components/commercial-proposal-editor/editor-types';
 import { callAppRoute } from 'src/front-components/utils/call-app-route';
+import type { CommercialProposalDraft, CommercialProposalResultMetadata } from 'src/domain/commercial-proposal';
 
 type GenerateResponse = {
   status: 'success';

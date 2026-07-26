@@ -9,10 +9,6 @@ import {
 } from 'twenty-sdk/front-component';
 
 import { CREATE_COMMERCIAL_PROPOSAL_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
-import type {
-  CommercialProposalDraft,
-  OpportunityContext,
-} from 'src/domain/commercial-proposal';
 import {
   buildCreateDraftRequest,
   createIdempotencyKey,
@@ -25,6 +21,8 @@ import {
   AppRouteError,
   callAppRoute,
 } from 'src/front-components/utils/call-app-route';
+import type { CommercialProposalDraft } from 'src/domain/commercial-proposal';
+import type { OpportunityContext } from 'src/modules/sales';
 
 type OpportunityContextResponse = {
   status: 'success';

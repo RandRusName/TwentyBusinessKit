@@ -1,9 +1,5 @@
-import type {
-  DocumentGenerationClient,
-  DocumentGenerationPayload,
-  DocumentGenerationResult,
-} from 'src/domain/commercial-proposal';
-import { ApplicationError } from 'src/domain/commercial-proposal';
+import { ApplicationError } from 'src/modules/foundation';
+import type { DocumentGenerationClient, DocumentGenerationPayload, DocumentGenerationResult } from 'src/domain/commercial-proposal';
 
 type DocumentServiceSuccessResponse = DocumentGenerationResult;
 

@@ -1,7 +1,5 @@
 import { Response } from 'twenty-sdk/logic-function';
-
-import type { ApplicationErrorCode } from 'src/domain/commercial-proposal';
-import { ApplicationError } from 'src/domain/commercial-proposal';
+import { ApplicationError, type ApplicationErrorCode } from 'src/modules/foundation';
 
 const HTTP_STATUS_BY_ERROR_CODE: Record<ApplicationErrorCode, number> = {
   INVALID_INPUT: 400,

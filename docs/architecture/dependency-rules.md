@@ -14,12 +14,20 @@ Forbidden:
 
 - Foundation importing a business module.
 - Sales, Catalog, Documents, Administration or platform importing Commercial
-  Proposals.
+  Proposals **or** `src/domain/commercial-proposal`.
 - Cycles between modules.
 - Module domain code importing React, Twenty SDK, HTTP or `process.env`.
 - Cross-module deep imports into another module's `domain` /
   `application` / `infrastructure` (use `src/modules/<module>` only).
 - Presentation code importing document-service internals directly.
+
+Ownership notes:
+
+- Foundation owns `ApplicationError` / `ApplicationErrorCode`.
+- Sales owns `OpportunityContext`.
+- Catalog owns catalog item/search contracts; Commercial Proposals consumes them.
+- Documents is a capability consumed by Commercial Proposals
+  (`Proposals -> Documents -> worker/storage`).
 
 ## Enforcement
 

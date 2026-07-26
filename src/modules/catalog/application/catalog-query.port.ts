@@ -1,20 +1,10 @@
 import type {
-  CatalogItemDto,
   CatalogSearchRequest,
+  CatalogSearchResult,
   NormalizedCatalogSearchRequest,
-} from 'src/services/catalog-item-repository';
+} from './catalog-search.types';
 
-export type CatalogSearchResult = {
-  items: CatalogItemDto[];
-  categories: string[];
-  pageCategories: string[];
-  pageInfo: {
-    limit: number;
-    endCursor: string | null;
-    hasNextPage: boolean;
-    resultCompleteness: 'COMPLETE' | 'PARTIAL';
-  };
-};
+export type { CatalogSearchRequest, CatalogSearchResult };
 
 export interface CatalogQueryService {
   search(request: NormalizedCatalogSearchRequest): Promise<CatalogSearchResult>;
@@ -23,5 +13,3 @@ export interface CatalogQueryService {
     pageInfo: { resultCompleteness: 'COMPLETE' | 'PARTIAL' };
   }>;
 }
-
-export type { CatalogSearchRequest };

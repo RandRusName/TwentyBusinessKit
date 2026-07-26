@@ -6,5 +6,6 @@
  * this entrypoint.
  */
 
+export type { OpportunityContext } from './domain/opportunity-context';
 export type { OpportunityContextQuery } from './application/opportunity-context.port';
 export { TwentySalesContextAdapter } from './infrastructure/twenty-sales-context.adapter';

@@ -9,9 +9,9 @@ New module guide: `docs/architecture/new-module-guide.md`
 
 | Module | Status | Responsibility | Detail |
 |---|---|---|---|
-| Foundation | supporting | Shared platform primitives (compatibility today; errors/money/dates/logging migrate incrementally) | `src/modules/foundation/README.md` |
-| Sales | active | Adapters/contracts for Twenty Company, Person, Opportunity | `src/modules/sales/README.md` |
-| Catalog | active | CatalogItem query/selection; defaults copied into proposal snapshots | `src/modules/catalog/README.md` |
+| Foundation | supporting | Shared platform primitives including `ApplicationError`; compatibility helpers under `src/platform` | `src/modules/foundation/README.md` |
+| Sales | active | Adapters/contracts for Twenty Company, Person, Opportunity; owns `OpportunityContext` | `src/modules/sales/README.md` |
+| Catalog | active | CatalogItem query/selection contracts and types; defaults copied into proposal snapshots | `src/modules/catalog/README.md` |
 | Commercial Proposals | active | First production business module: aggregate, editor, numbering, generation orchestration | [commercial-proposals.md](./commercial-proposals.md) |
 | Documents | active | Format-neutral generation port and document-service adapters | `src/modules/documents/README.md` |
 | Administration | supporting | Settings design, compatibility defaults, install/migration/health diagnostics | `src/modules/administration/README.md` |

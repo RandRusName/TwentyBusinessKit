@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CommercialProposalDraft } from 'src/domain/commercial-proposal';
 import {
   assertAggregateIntegrity,
   normalizeSaveEditorRequest,
@@ -42,6 +41,7 @@ import {
   callAppRoute,
   isApplicationError,
 } from 'src/front-components/utils/call-app-route';
+import type { CommercialProposalDraft } from 'src/domain/commercial-proposal';
 
 const proposalId = '123e4567-e89b-42d3-a456-426614174100';
 const operationId = '123e4567-e89b-42d3-a456-426614174101';

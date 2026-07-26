@@ -3,17 +3,17 @@ import { type RoutePayload } from 'twenty-sdk/logic-function';
 
 import { GENERATE_COMMERCIAL_PROPOSAL_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import {
-  generateCommercialProposalDocuments,
-  normalizeGenerateCommercialProposalRequest,
-  type GenerateCommercialProposalRequest,
-} from 'src/domain/commercial-proposal';
-import {
   failure,
   json,
   toApplicationError,
 } from 'src/logic-functions/http-response';
 import { HttpDocumentServiceAdapter } from 'src/modules/documents';
 import { TwentyRecordRepository } from 'src/services/twenty-record-repository';
+import {
+  generateCommercialProposalDocuments,
+  normalizeGenerateCommercialProposalRequest,
+  type GenerateCommercialProposalRequest,
+} from 'src/domain/commercial-proposal';
 import {
   createLogicFunctionLogger,
   summarizeInternalError,
