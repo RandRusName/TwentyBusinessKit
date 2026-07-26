@@ -1,6 +1,7 @@
 {
   "name": "mikoton-commercial-proposals",
   "version": "0.1.54",
+  "description": "Private Twenty CRM application for commercial proposal management and document generation.",
   "license": "MIT",
   "engines": {
     "node": "^24.5.0",
@@ -8,7 +9,14 @@
     "npm": "please-use-yarn",
     "yarn": ">=4.0.2"
   },
-  "keywords": [],
+  "keywords": [
+    "twenty",
+    "twenty-app",
+    "crm",
+    "commercial-proposals",
+    "document-generation",
+    "private-app"
+  ],
   "packageManager": "yarn@4.13.0",
   "scripts": {
     "twenty": "twenty",

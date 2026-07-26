@@ -1,6 +1,18 @@
 #!/usr/bin/env node
 
-const url = `${process.env.TWENTY_URL ?? 'http://192.168.100.11:3000'}/healthz`;
+const baseUrl = (process.env.TWENTY_URL || process.env.TWENTY_API_URL || '').replace(
+  /\/$/u,
+  '',
+);
+
+if (!baseUrl) {
+  console.error(
+    'ERROR: TWENTY_URL or TWENTY_API_URL is required for the Twenty health preflight.',
+  );
+  process.exit(1);
+}
+
+const url = `${baseUrl}/healthz`;
 
 try {
   const response = await fetch(url, { signal: AbortSignal.timeout(10000) });

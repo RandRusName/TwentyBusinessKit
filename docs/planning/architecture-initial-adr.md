@@ -8,7 +8,7 @@ Proposed. No application code is implemented in this phase.
 
 ## Verified Context
 
-The target Twenty instance is `http://192.168.100.11:3000/`.
+The target Twenty instance is `$TWENTY_API_URL`.
 
 Verified facts:
 

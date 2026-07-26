@@ -129,7 +129,7 @@ host after signing; S3 signatures include the host.
 The host in `MINIO_PUBLIC_BASE_URL` must also be reachable from the Twenty
 server container, because the app validates and attaches each generated file
 server-side. For an internal target, bind the MinIO API to the server LAN
-address (for example, `MINIO_BIND_ADDRESS=192.168.100.11`) and keep the MinIO
+address (for example, `MINIO_BIND_ADDRESS=<twenty-server-lan-ip>`) and keep the MinIO
 console bound to localhost. The bucket remains private and object downloads
 require an expiring signed URL.
 

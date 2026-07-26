@@ -5,34 +5,58 @@ param(
 $ErrorActionPreference = "Stop"
 
 $wslConfigPath = Join-Path $env:USERPROFILE ".wslconfig"
-$requiredLines = @{
-  "networkingMode=mirrored" = "[wsl2]`nnetworkingMode=mirrored"
+$projectDir = Split-Path -Parent $PSScriptRoot
+
+function Get-TwentyApiUrl {
+  if (-not [string]::IsNullOrWhiteSpace($env:TWENTY_API_URL)) {
+    return $env:TWENTY_API_URL.Trim().TrimEnd('/')
+  }
+
+  $envFile = Join-Path $projectDir '.env'
+  if (Test-Path -LiteralPath $envFile) {
+    foreach ($line in Get-Content -LiteralPath $envFile) {
+      $trimmed = $line.Trim()
+      if ($trimmed -match '^\s*#' -or $trimmed -eq '') {
+        continue
+      }
+      if ($trimmed -match '^\s*TWENTY_API_URL\s*=\s*(.+)\s*$') {
+        return $Matches[1].Trim().Trim('"').Trim("'").TrimEnd('/')
+      }
+    }
+  }
+
+  return $null
 }
 
-function Test-WslLanAccess {
+$twentyUrl = Get-TwentyApiUrl
+if (-not $twentyUrl) {
+  Write-Error "TWENTY_API_URL is required. Set it in the environment or in .env before running this script."
+}
+
+function Test-WindowsTwentyAccess {
   try {
-    & curl.exe -fsS --connect-timeout 10 "http://192.168.100.11:3000/healthz" | Out-Null
+    & curl.exe -fsS --connect-timeout 10 "$twentyUrl/healthz" | Out-Null
     return $LASTEXITCODE -eq 0
   } catch {
     return $false
   }
 }
 
-function Test-WslNodeLanAccess {
-  $projectDir = Split-Path -Parent $PSScriptRoot
-  $result = wsl bash -lc "source ~/.nvm/nvm.sh 2>/dev/null; cd '$(wsl wslpath -a $projectDir)' && TWENTY_URL='http://192.168.100.11:3000' node scripts/network-preflight.mjs" 2>&1
+function Test-WslNodeTwentyAccess {
+  $wslProjectDir = wsl wslpath -a $projectDir
+  $result = wsl bash -lc "source ~/.nvm/nvm.sh 2>/dev/null; cd '$wslProjectDir' && TWENTY_URL='$twentyUrl' node scripts/network-preflight.mjs" 2>&1
   return $LASTEXITCODE -eq 0
 }
 
-Write-Host "Checking Windows access to Twenty..."
-if (-not (Test-WslLanAccess)) {
-  Write-Error "Windows cannot reach http://192.168.100.11:3000. Verify VPN/internal network and that Twenty is running."
+Write-Host "Checking Windows access to Twenty ($twentyUrl)..."
+if (-not (Test-WindowsTwentyAccess)) {
+  Write-Error "Windows cannot reach $twentyUrl. Verify VPN/internal network and that Twenty is running."
 }
 
 Write-Host "Windows access: OK"
 
 Write-Host "Checking WSL access to Twenty..."
-if (Test-WslNodeLanAccess) {
+if (Test-WslNodeTwentyAccess) {
   Write-Host "WSL access: OK"
   Write-Host "No WSL networking changes are required."
   exit 0
@@ -40,7 +64,7 @@ if (Test-WslNodeLanAccess) {
 
 Write-Host "WSL access: FAILED"
 Write-Host ""
-Write-Host "WSL2 NAT cannot reach the internal Twenty host from Linux, while Windows can."
+Write-Host "WSL2 NAT cannot reach the Twenty host from Linux, while Windows can."
 Write-Host "Private deploy requires WSL mirrored networking."
 Write-Host ""
 
@@ -77,7 +101,7 @@ wsl --shutdown
 Start-Sleep -Seconds 3
 
 Write-Host "Re-checking WSL access to Twenty..."
-if (-not (Test-WslNodeLanAccess)) {
+if (-not (Test-WslNodeTwentyAccess)) {
   Write-Error "WSL still cannot reach Twenty after enabling mirrored networking. Reboot Windows and run this script again."
 }
 

@@ -4,7 +4,7 @@ Date: 2026-07-13.
 
 ## Versions
 
-- Target Twenty URL: `http://192.168.100.11:3000`
+- Target Twenty URL: `$TWENTY_API_URL`
 - Target Twenty Server: `v2.20.0`
 - App SDK: `twenty-sdk@2.20.0`
 - Client SDK: `twenty-client-sdk@2.20.0`
@@ -34,7 +34,7 @@ Command to run after receiving a real API key:
 
 ```powershell
 $env:TWENTY_API_KEY = "<TWENTY_API_KEY>"
-yarn.cmd twenty remote:add --as mikoton-remote --url http://192.168.100.11:3000 --api-key $env:TWENTY_API_KEY
+yarn.cmd twenty remote:add --as mikoton-remote --url $TWENTY_API_URL --api-key $env:TWENTY_API_KEY
 yarn.cmd twenty plan -r mikoton-remote .
 ```
 
@@ -59,7 +59,7 @@ Observed result:
 - CLI attempted to use `mikoton-remote`;
 - server check failed with `Cannot reach Twenty server`;
 - `yarn.cmd twenty remote:list` showed only `local -> http://localhost:2020`;
-- no target API key was available to add `http://192.168.100.11:3000`;
+- no target API key was available to add `$TWENTY_API_URL`;
 - no remote metadata was changed.
 
 ## Apply/Sync
@@ -73,7 +73,7 @@ Not executed. A repeated plan must be run only after a successful apply/sync.
 
 ## Conclusion
 
-Remote dry-run against `http://192.168.100.11:3000` is blocked until a real API
+Remote dry-run against `$TWENTY_API_URL` is blocked until a real API
 key is provided. No destructive remote operation was performed.
 
 ## Phase 5.5 Corrective Plan

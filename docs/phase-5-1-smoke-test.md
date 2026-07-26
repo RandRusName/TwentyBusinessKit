@@ -29,7 +29,7 @@ Prompt 5.1 adds backend aggregate metadata and routes:
 
 | Check | Result | Evidence |
 |---|---|---|
-| Remote | Passed | `mikoton-target -> http://192.168.100.11:3000`, API key auth valid |
+| Remote | Passed | `mikoton-target -> $TWENTY_API_URL`, API key auth valid |
 | Twenty version | Passed | `v2.20.0` |
 | Initial metadata plan | Passed | 29 add, 5 change, 0 destroy |
 | Install/upgrade | Passed | `deploy.bat`, private publish + install |

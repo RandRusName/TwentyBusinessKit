@@ -2,7 +2,7 @@
 
 Date: 2026-07-22 (Europe/Moscow)
 
-Target: Twenty `v2.20.0`, `http://192.168.100.11:3000`, remote `mikoton-target`.
+Target: Twenty `v2.20.0`, `$TWENTY_API_URL`, remote `mikoton-target`.
 
 ## Release Evidence
 

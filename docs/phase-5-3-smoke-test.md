@@ -1,7 +1,7 @@
 # Phase 5.3 smoke test
 
 Date: 2026-07-20
-Target: `http://192.168.100.11:3000` (`Twenty v2.20.0`)
+Target: `$TWENTY_API_URL` (`Twenty v2.20.0`)
 Remote: `mikoton-target`
 App version: `0.1.37`
 Release source commit: `9c7bd6125353a05ff292d226a67a23be288255b4`

@@ -6,7 +6,7 @@ Goal: remove remaining uncertainty before app implementation.
 
 Tasks:
 
-1. Obtain workspace/admin credentials or app installation token for `http://192.168.100.11:3000/`.
+1. Obtain workspace/admin credentials or app installation token for `$TWENTY_API_URL`.
 2. Confirm app installation is allowed for the Mikoton workspace.
 3. Run `create-twenty-app@2.20.0` in a separate app directory.
 4. Confirm `twenty-sdk@2.20.0` can connect to the target server.
