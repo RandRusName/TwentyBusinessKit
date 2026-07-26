@@ -1,5 +1,10 @@
 import { ApplicationError } from 'src/modules/foundation';
-import type { DocumentGenerationClient, DocumentGenerationPayload, DocumentGenerationResult } from 'src/domain/commercial-proposal';
+import type {
+  DocumentGenerationClient,
+  DocumentGenerationPayload,
+  DocumentGenerationResult,
+} from 'src/domain/commercial-proposal';
+import type { XlsxWorkbookMetadata } from 'src/modules/documents';
 
 type DocumentServiceSuccessResponse = DocumentGenerationResult;
 
@@ -288,6 +293,94 @@ export class HttpDocumentServiceClient implements DocumentGenerationClient {
         payload: request.payload,
         requestedFormats: request.requestedFormats,
       });
+    } catch (error) {
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ApplicationError(
+          'DOCUMENT_SERVICE_TIMEOUT',
+          'Document service request timed out',
+          error,
+        );
+      }
+
+      throw new ApplicationError(
+        'DOCUMENT_SERVICE_UNAVAILABLE',
+        'Document service is unavailable',
+        error,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async inspectXlsxTemplate(request: {
+    templateFileBase64: string;
+    originalFileName: string;
+    requestId?: string;
+  }) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl.replace(/\/$/, '')}/v1/xlsx-templates/inspect`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${this.secret}`,
+            'content-type': 'application/json',
+            ...(request.requestId === undefined
+              ? {}
+              : { 'x-request-id': request.requestId }),
+          },
+          body: JSON.stringify({
+            templateFileBase64: request.templateFileBase64,
+            originalFileName: request.originalFileName,
+          }),
+          signal: controller.signal,
+        },
+      );
+
+      const responseText = await response.text();
+      const responseBody = parseJsonResponse(responseText);
+
+      if (!response.ok) {
+        const failure = isObject(responseBody) ? responseBody : null;
+        const errorCode =
+          isObject(failure?.error) && typeof failure.error.code === 'string'
+            ? mapServiceErrorCode(response.status, failure.error.code)
+            : mapServiceErrorCode(response.status, undefined);
+
+        throw new ApplicationError(
+          errorCode,
+          (isObject(failure?.error) && typeof failure.error.message === 'string'
+            ? failure.error.message
+            : null) ?? `Document service failed with HTTP ${response.status}`,
+        );
+      }
+
+      if (
+        !isObject(responseBody) ||
+        responseBody.status !== 'success' ||
+        typeof responseBody.sha256 !== 'string' ||
+        !SHA256_REGEX.test(responseBody.sha256) ||
+        !isObject(responseBody.workbook) ||
+        !Array.isArray(responseBody.workbook.sheets)
+      ) {
+        throw new ApplicationError(
+          'DOCUMENT_SERVICE_INVALID_RESPONSE',
+          'Document service returned an invalid inspect response',
+        );
+      }
+
+      return {
+        status: 'success' as const,
+        workbook: responseBody.workbook as XlsxWorkbookMetadata,
+        sha256: responseBody.sha256,
+      };
     } catch (error) {
       if (error instanceof ApplicationError) {
         throw error;

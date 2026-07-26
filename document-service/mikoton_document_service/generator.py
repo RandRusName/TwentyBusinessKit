@@ -422,6 +422,22 @@ def _exact_keys(value: dict[str, Any], expected: set[str], field: str) -> None:
         )
 
 
+def _exact_keys_allow_optional(
+    value: dict[str, Any],
+    required: set[str],
+    optional: set[str],
+    field: str,
+) -> None:
+    actual = set(value)
+    missing = sorted(required - actual)
+    extra = sorted(actual - required - optional)
+    if missing or extra:
+        raise DocumentGenerationError(
+            "PAYLOAD_INVALID",
+            f"{field} has invalid fields (missing={missing}, extra={extra})",
+        )
+
+
 def _decimal(value: Any, field: str) -> Decimal:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise DocumentGenerationError("PAYLOAD_INVALID", f"{field} must be a number")
@@ -435,7 +451,12 @@ def _decimal(value: Any, field: str) -> Decimal:
 
 
 def _validate_payload_v2(payload: dict[str, Any], mapping: dict[str, Any]) -> None:
-    _exact_keys(payload, {"schemaVersion", "templateCode", "templateVersion", "proposal", "customer", "contractor", "content"}, "payload")
+    _exact_keys_allow_optional(
+        payload,
+        {"schemaVersion", "templateCode", "templateVersion", "proposal", "customer", "contractor", "content"},
+        {"templateRenderConfig"},
+        "payload",
+    )
     proposal = payload.get("proposal")
     customer = payload.get("customer")
     contractor = payload.get("contractor")
@@ -1025,7 +1046,37 @@ def generate_documents(
             raise DocumentGenerationError("GENERATION_IDEMPOTENCY_CONFLICT", "Idempotency key was used with another snapshot")
         return _refresh_manifest_urls(manifest, document_storage, signed_url_ttl_seconds)
 
-    xlsx = generate_xlsx(payload, template_path, mapping_path, generation_dir)
+    render_config = payload.get("templateRenderConfig")
+    template_audit: dict[str, Any] = {"templateSource": "built-in"}
+    if isinstance(render_config, dict):
+        from .custom_xlsx import load_template_bytes_from_render_config, render_custom_xlsx
+
+        custom_mapping = render_config.get("mapping")
+        if not isinstance(custom_mapping, dict):
+            raise DocumentGenerationError("PAYLOAD_INVALID", "templateRenderConfig.mapping is required")
+        template_bytes = load_template_bytes_from_render_config(
+            render_config, storage=document_storage
+        )
+        proposal_number = payload["proposal"]["number"]
+        company_slug = _sanitize_filename_part(payload["customer"].get("companyName") or "no-company")
+        file_name = f"{_sanitize_filename_part(proposal_number)}-{company_slug}.xlsx"
+        xlsx = render_custom_xlsx(
+            template_bytes=template_bytes,
+            payload=payload,
+            mapping=custom_mapping,
+            output_dir=generation_dir,
+            output_file_name=file_name,
+        )
+        template_file = render_config.get("templateFile") if isinstance(render_config.get("templateFile"), dict) else {}
+        template_audit = {
+            "templateSource": "custom-xlsx",
+            "templateVersionId": render_config.get("templateVersionId"),
+            "templateFileSha256": template_file.get("sha256"),
+            "mappingSchemaVersion": custom_mapping.get("schemaVersion"),
+        }
+    else:
+        xlsx = generate_xlsx(payload, template_path, mapping_path, generation_dir)
+
     pdf = generate_pdf_from_xlsx(
         xlsx,
         generation_dir,
@@ -1058,6 +1109,7 @@ def generate_documents(
         "snapshotHash": actual_snapshot_hash,
         "idempotencyKey": generation_key,
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        **{key: value for key, value in template_audit.items() if value is not None},
         "files": [
             {
                 "id": file.id,

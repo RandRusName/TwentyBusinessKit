@@ -33,6 +33,7 @@ export type ApplicationErrorCode =
   | 'DOCUMENT_GENERATION_FAILED'
   | 'DOCUMENT_STORAGE_FAILED'
   | 'PDF_EXPORT_FAILED'
+  | 'FEATURE_NOT_IMPLEMENTED'
   | 'INTERNAL_ERROR';
 
 export class ApplicationError extends Error {

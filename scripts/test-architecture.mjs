@@ -192,6 +192,18 @@ requireText(
   'src/logic-functions/search-catalog-items.logic-function.ts',
   'src/modules/catalog',
 );
+requireText(
+  'src/logic-functions/inspect-commercial-proposal-xlsx-template.logic-function.ts',
+  'src/modules/documents',
+);
+requireText(
+  'src/logic-functions/validate-commercial-proposal-xlsx-template-mapping.logic-function.ts',
+  'src/modules/commercial-proposals',
+);
+requireText(
+  'src/logic-functions/create-commercial-proposal-xlsx-template-version.logic-function.ts',
+  'src/modules/commercial-proposals',
+);
 
 // Registry consistency (parsed without TypeScript execution).
 const registryPath = path.join(root, 'src/modules/registry.ts');

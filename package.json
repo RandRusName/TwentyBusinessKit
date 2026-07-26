@@ -1,6 +1,6 @@
 {
   "name": "mikoton-commercial-proposals",
-  "version": "0.1.54",
+  "version": "0.1.55",
   "description": "Private Twenty CRM application for commercial proposal management and document generation.",
   "license": "MIT",
   "engines": {

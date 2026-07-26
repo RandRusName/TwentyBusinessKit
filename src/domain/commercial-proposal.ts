@@ -3,7 +3,10 @@ import {
   calculateProposalLineAmount,
   sumLineAmounts,
 } from 'src/domain/commercial-proposal-money';
-import type { DocumentGenerationPort } from 'src/modules/documents';
+import type {
+  CustomXlsxTemplateRenderConfig,
+  DocumentGenerationPort,
+} from 'src/modules/documents';
 import { ApplicationError } from 'src/modules/foundation';
 import type { OpportunityContext } from 'src/modules/sales';
 
@@ -69,6 +72,12 @@ export type CommercialProposalResultMetadataV2 = {
   templateCode: 'mikoton-commercial-proposal';
   templateVersion: '2';
   files: CommercialProposalGenerationFile[];
+  /** Absent or 'built-in' = fixed mikoton template. Optional audit for custom XLSX. */
+  templateSource?: 'built-in' | 'custom-xlsx';
+  templateId?: string;
+  templateVersionId?: string;
+  templateFileSha256?: string;
+  mappingSchemaVersion?: '1.0';
 };
 
 export type CommercialProposalResultMetadata =
@@ -311,6 +320,11 @@ export type DocumentGenerationPayloadV2 = {
     assumptions: string;
     nextStep: string;
   };
+  /**
+   * When present, document-service renders the uploaded XLSX using mapping.
+   * When absent, built-in mikoton-commercial-proposal v2 is used (default).
+   */
+  templateRenderConfig?: CustomXlsxTemplateRenderConfig;
 };
 
 export type DocumentGenerationPayload =
@@ -909,10 +923,12 @@ export const buildDocumentGenerationPayloadV2 = ({
   aggregate,
   company,
   now = new Date(),
+  templateRenderConfig,
 }: {
   aggregate: CommercialProposalAggregate;
   company: { id: string; name: string } | null;
   now?: Date;
+  templateRenderConfig?: CustomXlsxTemplateRenderConfig;
 }): DocumentGenerationPayloadV2 => {
   validateAggregateForGeneration(aggregate);
   const proposal = aggregate.proposal;
@@ -962,6 +978,9 @@ export const buildDocumentGenerationPayloadV2 = ({
       assumptions: proposal.assumptions ?? '',
       nextStep: proposal.nextStep ?? '',
     },
+    ...(templateRenderConfig === undefined
+      ? {}
+      : { templateRenderConfig }),
   };
 };
 
