@@ -32,7 +32,18 @@ hardening). Target install, backup/restore, metadata plan, API smoke and UI E2E
 are recorded in `docs/phase-5-5-production-acceptance.md`. Restricted-user,
 controlled runtime recovery/rollback evidence remains open,
 so the evidence-based verdict is **NOT READY FOR PRODUCTION USE**. Deployment
-remains private and runs only from a machine on the internal network.
+remains private and runs only from a machine that can reach the target Twenty
+instance.
+
+## Distribution status
+
+This repository is public, but the application is currently distributed as a
+private Twenty App for controlled internal deployment.
+
+It is not published to the public Twenty Marketplace yet. Public Marketplace
+readiness requires a separate hardening pass: public metadata, screenshots,
+terms/privacy URLs, external service setup, install/uninstall/upgrade
+validation and removal of private deployment assumptions.
 
 ## Scope
 
@@ -341,8 +352,24 @@ See `docs/document-generation.md`, `docs/template-mapping-v1.md` and
 
 ## Private Deployment
 
-The target Twenty server is on a private network. GitHub Actions must not deploy
-to it and must not receive its API key.
+The target Twenty server is reached only from trusted operator machines.
+GitHub Actions must not deploy to it and must not receive its API key.
+
+### Required local environment
+
+Create a local `.env` file or export environment variables before running
+`deploy.bat`:
+
+```env
+TWENTY_API_URL=https://your-twenty-instance.example
+TWENTY_REMOTE_NAME=mikoton-target
+```
+
+`TWENTY_API_URL` is required for deployment health checks.
+`TWENTY_REMOTE_NAME` is optional and defaults to `mikoton-target`.
+
+Never commit `.env`.
+Never hardcode internal hostnames/IPs in scripts or docs.
 
 Preferred one-click private deployment:
 
@@ -352,7 +379,8 @@ deploy.bat
 ```
 
 `deploy.bat` bumps the patch version, runs the WSL build, private publishes to
-`mikoton-target`, and installs or upgrades the app on `$TWENTY_API_URL`.
+`$TWENTY_REMOTE_NAME` (default `mikoton-target`), and installs or upgrades the
+app on `$TWENTY_API_URL`.
 
 See `docs/private-deployment.md`, `docs/tarball-build.md`, `docs/upgrade.md`
 and `docs/rollback.md`.

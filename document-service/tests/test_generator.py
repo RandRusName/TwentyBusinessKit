@@ -447,11 +447,11 @@ class GeneratorTest(unittest.TestCase):
     def test_s3_public_base_url_is_used_for_presigned_query(self) -> None:
         storage = object.__new__(S3DocumentStorage)
         storage.bucket = "commercial-proposals"
-        storage.public_base_url = "http://192.168.100.11:9000"
+        storage.public_base_url = "http://minio.example.test:9000"
 
         class FakeClient:
             def generate_presigned_url(self, *args, **kwargs):
-                return "http://192.168.100.11:9000/commercial-proposals/path/file.pdf?X-Amz-Signature=abc"
+                return "http://minio.example.test:9000/commercial-proposals/path/file.pdf?X-Amz-Signature=abc"
 
         storage.presign_client = FakeClient()
 
@@ -462,7 +462,7 @@ class GeneratorTest(unittest.TestCase):
 
         self.assertEqual(
             url,
-            "http://192.168.100.11:9000/commercial-proposals/path/file.pdf?X-Amz-Signature=abc",
+            "http://minio.example.test:9000/commercial-proposals/path/file.pdf?X-Amz-Signature=abc",
         )
 
 

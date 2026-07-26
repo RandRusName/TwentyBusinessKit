@@ -5,19 +5,25 @@
 Do not deploy or tag `1.0.0` until the exact final commit has green CI, a safe
 metadata plan, verified backups, isolated restore/rollback rehearsals and the
 target acceptance described in `production-acceptance.md` /
-`phase-5-5-production-acceptance.md`. App `0.1.48` implements the code fixes;
-verdict remains **NOT READY** until operator checks are recorded. GitHub-hosted
-runners never connect to the internal target; production private publish and
-install remain local WSL operations.
+`phase-5-5-production-acceptance.md`. App `0.1.54` implements the current
+hardening; verdict remains **NOT READY** until operator checks are recorded.
+GitHub-hosted runners never connect to the internal target; production private
+publish and install remain local WSL operations.
 
 The target Twenty server is available only on the internal network. Configure
 it via environment / CLI remote — do not hardcode host addresses in docs or
 scripts:
 
-```text
-$TWENTY_API_URL
-# example: https://your-twenty-instance.example
+```env
+TWENTY_API_URL=https://your-twenty-instance.example
+TWENTY_REMOTE_NAME=mikoton-target
 ```
+
+`TWENTY_API_URL` is required by `deploy.bat` / `scripts/deploy-wsl.sh`.
+`TWENTY_REMOTE_NAME` is optional and defaults to `mikoton-target`.
+
+You may put these values in a local `.env` (gitignored) or export them in the
+shell. Never commit `.env`.
 
 GitHub Actions must not access this server, and the target API key must not be
 stored in GitHub Secrets for this project. CI validates code, integration tests
@@ -38,7 +44,7 @@ This is the preferred private release flow. It performs:
 3. automatic patch version bump;
 4. WSL build via `scripts/build-wsl.sh`;
 5. tarball validation;
-6. private publish to `mikoton-target`;
+6. private publish to `$TWENTY_REMOTE_NAME` (default `mikoton-target`);
 7. install or upgrade on Twenty;
 8. local release manifest under `release-artifacts/`.
 
@@ -62,7 +68,7 @@ Configure the Twenty CLI remote once from inside WSL. Do not put the key in
 
 ```bash
 corepack yarn twenty remote:add \
-  --as mikoton-target \
+  --as "${TWENTY_REMOTE_NAME:-mikoton-target}" \
   --url "$TWENTY_API_URL" \
   --api-key "<target-api-key>"
 ```
@@ -76,14 +82,20 @@ corepack yarn twenty remote:status
 Expected target:
 
 ```text
-Remote:  mikoton-target
+Remote:  mikoton-target   # or $TWENTY_REMOTE_NAME
 Server:  <value of TWENTY_API_URL>
 Auth:    api-key (valid)
 ```
 
-The deploy script uses the configured remote. If `mikoton-target` is missing or
-auth is invalid, deployment stops with a clear error. It does not start OAuth
+The deploy script uses the configured remote. If the remote is missing or auth
+is invalid, deployment stops with a clear error. It does not start OAuth
 fallback automatically.
+
+If `TWENTY_API_URL` is unset, deploy fails fast:
+
+```text
+ERROR: TWENTY_API_URL is required. Set it in the environment or in .env before running deploy.bat.
+```
 
 ## Required Twenty Server Runtime
 
@@ -139,6 +151,7 @@ Fix once with mirrored networking:
 powershell -ExecutionPolicy Bypass -File scripts/setup-wsl-mirrored-network.ps1 -Apply
 ```
 
+The script reads `TWENTY_API_URL` from the environment or local `.env`.
 This writes `%USERPROFILE%\.wslconfig`, restarts WSL, and re-checks access.
 After that, run `deploy.bat` again.
 
@@ -166,7 +179,7 @@ Verify:
 
 - the app is private;
 - name is `mikoton-commercial-proposals`;
-- version matches `package.json` (`0.1.48` or the deployed patch);
+- version matches `package.json` (`0.1.54` or the deployed patch);
 - the app is installed in the expected Workspace;
 - public Marketplace was not used;
 - `CommercialProposalGenerationClaim` metadata is present after apply.

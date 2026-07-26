@@ -2,7 +2,7 @@
 
 ## Build Under Test
 
-- Target: `http://192.168.100.11:3000`
+- Target: `$TWENTY_API_URL`
 - Twenty: `v2.20.0`
 - App version: `0.1.47`
 - Release source commit: `ef76a6a`

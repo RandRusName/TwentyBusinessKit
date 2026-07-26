@@ -4,7 +4,7 @@ Date: 2026-07-13.
 
 ## Target Instance
 
-- URL: `http://192.168.100.11:3000`
+- URL: `$TWENTY_API_URL`
 - Twenty version: `v2.20.0`
 - Remote: `mikoton-target`
 - Workspace access: browser signed in as a regular User.

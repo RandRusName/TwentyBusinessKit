@@ -1,6 +1,6 @@
 # Twenty Apps SDK Capability Review
 
-Target instance: `http://192.168.100.11:3000/`
+Target instance: `$TWENTY_API_URL`
 
 Target Twenty version: `v2.20.0`, verified through `GET /client-config`.
 

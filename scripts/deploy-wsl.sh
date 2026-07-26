@@ -10,8 +10,8 @@ if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
   . "$HOME/.nvm/nvm.sh"
 fi
 
-REMOTE_NAME="mikoton-target"
-TWENTY_URL="http://192.168.100.11:3000"
+REMOTE_NAME="${TWENTY_REMOTE_NAME:-mikoton-target}"
+TWENTY_URL="${TWENTY_API_URL:-}"
 EXPECTED_TWENTY_VERSIONS=("v2.20.0" "2.20.0")
 
 CLEAN_DEPS=false
@@ -52,6 +52,12 @@ PUBLISH_SUCCEEDED=false
 fail() {
   echo "ERROR: $*" >&2
   exit 1
+}
+
+require_deploy_config() {
+  if [[ -z "$TWENTY_URL" ]]; then
+    fail "TWENTY_API_URL is required. Set it in the environment or in .env before running deploy.bat."
+  fi
 }
 
 require_command() {
@@ -430,6 +436,9 @@ BACKUP_DIR="$(mktemp -d)"
 cp "$PROJECT_DIR/package.json" "$BACKUP_DIR/package.json"
 
 load_dotenv
+REMOTE_NAME="${TWENTY_REMOTE_NAME:-mikoton-target}"
+TWENTY_URL="${TWENTY_API_URL:-}"
+require_deploy_config
 assert_wsl_can_reach_twenty
 check_twenty_health
 ensure_remote_ready

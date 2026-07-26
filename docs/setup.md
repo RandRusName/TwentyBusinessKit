@@ -4,13 +4,14 @@
 
 - Node.js compatible with `.nvmrc` and `package.json`.
 - Yarn 4.
-- Network access to `http://192.168.100.11:3000`.
+- Network access to the target Twenty instance (`$TWENTY_API_URL`).
 - API key from the target Twenty workspace.
 
-The target instance was checked on 2026-07-12:
+Example historical verification (2026-07-12) against the internal target
+configured via `$TWENTY_API_URL`:
 
-- `GET http://192.168.100.11:3000/healthz` returned `200`.
-- `GET http://192.168.100.11:3000/client-config` returned `appVersion: v2.20.0`.
+- `GET $TWENTY_API_URL/healthz` returned `200`.
+- `GET $TWENTY_API_URL/client-config` returned `appVersion: v2.20.0`.
 - `isWorkspaceSchemaDDLLocked: false`.
 
 ## Install
@@ -27,11 +28,12 @@ The target server does not expose a CLI OAuth client id, so the CLI requires an
 API key:
 
 ```powershell
-yarn.cmd twenty remote:add --as mikoton-remote --url http://192.168.100.11:3000 --api-key "<TWENTY_API_KEY>"
+yarn.cmd twenty remote:add --as mikoton-remote --url $env:TWENTY_API_URL --api-key "<TWENTY_API_KEY>"
 yarn.cmd twenty remote:use mikoton-remote
 ```
 
-Do not commit API keys or `.env` files.
+Do not commit API keys or `.env` files. See `.env.example` for the expected
+local variables.
 
 ## Safe Metadata Preview
 

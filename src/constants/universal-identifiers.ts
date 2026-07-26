@@ -1,5 +1,6 @@
 export const APP_DISPLAY_NAME = 'Mikoton Commercial Proposals';
-export const APP_DESCRIPTION = 'Commercial proposal draft creation for Twenty CRM';
+export const APP_DESCRIPTION =
+  'Private Twenty CRM application for creating, editing and generating commercial proposals from Opportunities. Includes catalog-backed proposal items, XLSX/PDF generation and app-owned proposal records.';
 export const APPLICATION_UNIVERSAL_IDENTIFIER =
   '21ee6641-cda4-4f97-a9f6-b0aa4b5de411';
 export const TWENTY_API_URL_APPLICATION_VARIABLE_UNIVERSAL_IDENTIFIER =

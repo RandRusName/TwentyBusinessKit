@@ -7,7 +7,7 @@ Date: 2026-07-21
 - App version: `0.1.38`.
 - Implementation commit: `a1d093c277ea7b4c0b4c32a29aab41dd8d600967`.
 - Release commit: `27e9d56`.
-- Target: `http://192.168.100.11:3000`, Twenty `v2.20.0`, remote `mikoton-target`.
+- Target: `$TWENTY_API_URL`, Twenty `v2.20.0`, remote `mikoton-target`.
 - Private publish and install/upgrade: passed through `deploy.bat`.
 - Release tarball: `mikoton-commercial-proposals-0.1.38.tgz`, 1,502,081 bytes.
 - Tarball SHA-256: `e4c5010273abf6fc69e0564f133f2f193f15369cc5bd1dbd420aa1e32f1622f7`.
