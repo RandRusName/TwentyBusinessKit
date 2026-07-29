@@ -1030,11 +1030,22 @@ export const generateCommercialProposalDocuments = async ({
   input,
   repository,
   documentClient,
+  xlsxTemplateRepository,
   now = new Date(),
 }: {
   input: GenerateCommercialProposalInput;
   repository: CommercialProposalRepository;
   documentClient: DocumentGenerationClient;
+  xlsxTemplateRepository?: {
+    getActiveVersion: () => Promise<{
+      id: string;
+      templateId: string;
+      storageKey: string;
+      fileSha256: string;
+      originalFileName: string;
+      mapping: import('src/modules/documents').XlsxTemplateMapping;
+    } | null>;
+  };
   now?: Date;
 }) => {
   const {
@@ -1122,6 +1133,41 @@ export const generateCommercialProposalDocuments = async ({
   }
 
   if (aggregate !== undefined) validateAggregateForGeneration(aggregate);
+
+  let activeCustomTemplate: {
+    id: string;
+    templateId: string;
+    storageKey: string;
+    fileSha256: string;
+    originalFileName: string;
+    mapping: import('src/modules/documents').XlsxTemplateMapping;
+  } | null = null;
+
+  if (aggregate !== undefined && xlsxTemplateRepository !== undefined) {
+    try {
+      activeCustomTemplate = await xlsxTemplateRepository.getActiveVersion();
+    } catch (error) {
+      throw new ApplicationError(
+        'COMMERCIAL_PROPOSAL_GENERATION_VALIDATION_FAILED',
+        'Не удалось загрузить активный пользовательский XLSX-шаблон',
+        error,
+      );
+    }
+  }
+
+  const templateRenderConfig =
+    activeCustomTemplate === null
+      ? undefined
+      : {
+          templateSource: 'custom-xlsx' as const,
+          templateVersionId: activeCustomTemplate.id,
+          templateFile: {
+            storageKey: activeCustomTemplate.storageKey,
+            sha256: activeCustomTemplate.fileSha256,
+            originalFileName: activeCustomTemplate.originalFileName,
+          },
+          mapping: activeCustomTemplate.mapping,
+        };
 
   const fingerprint = calculateGenerationContentFingerprint({ draft, aggregate });
   const acquired = await acquireGenerationClaim({
@@ -1273,6 +1319,7 @@ export const generateCommercialProposalDocuments = async ({
               },
               company,
               now,
+              templateRenderConfig,
             });
 
       if (aggregate !== undefined) {
@@ -1406,6 +1453,23 @@ export const generateCommercialProposalDocuments = async ({
         templateCode: result.templateCode,
         templateVersion: result.templateVersion,
         files: attachedFiles,
+        ...(payload.schemaVersion === '2.0'
+          ? {
+              templateSource:
+                payload.templateRenderConfig === undefined
+                  ? ('built-in' as const)
+                  : ('custom-xlsx' as const),
+              ...(payload.templateRenderConfig === undefined ||
+              activeCustomTemplate === null
+                ? {}
+                : {
+                    templateId: activeCustomTemplate.templateId,
+                    templateVersionId: activeCustomTemplate.id,
+                    templateFileSha256: activeCustomTemplate.fileSha256,
+                    mappingSchemaVersion: '1.0' as const,
+                  }),
+            }
+          : {}),
       } as CommercialProposalResultMetadata;
 
       for (const file of result.files) {

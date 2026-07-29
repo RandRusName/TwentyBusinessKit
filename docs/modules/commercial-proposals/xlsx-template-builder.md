@@ -1,4 +1,4 @@
-# Commercial Proposal XLSX Template Builder (foundation)
+# Commercial Proposal XLSX Template Builder
 
 ## Scope
 
@@ -6,16 +6,22 @@ User-configurable XLSX templates for Commercial Proposals:
 
 - bind allowed proposal fields to workbook cells;
 - expand `content.workItems` (and later `content.plan`) table rows;
-- version uploaded templates so generated documents stay auditable.
+- store immutable template versions (object storage + Twenty metadata);
+- activate one global custom template for generation.
 
-This foundation pass does **not** include a visual spreadsheet editor,
-drag-to-select cells, DOCX, Marketplace packaging, or persistence of template
-binaries into Twenty metadata objects.
+This pass does **not** include a full Excel editor, drag-fill, DOCX, Marketplace
+packaging, or per-proposal template selection (P1).
 
 ## Default behavior (backward compatible)
 
-If a proposal generation request does **not** include
-`templateRenderConfig`, document-service uses the built-in template:
+Generation priority:
+
+```text
+1. Global ACTIVE custom XLSX template version (if present)
+2. Else built-in mikoton-commercial-proposal v2
+```
+
+When no ACTIVE custom template exists, document-service uses the built-in path:
 
 ```text
 templateCode = mikoton-commercial-proposal
@@ -23,7 +29,22 @@ templateVersion = 2
 schemaVersion = 2.0
 ```
 
-Existing `AGGREGATE_V2` generation is unchanged.
+Custom XLSX is a **render source**, not a different business document schema.
+Responses still use `templateCode = mikoton-commercial-proposal`. Distinguish via
+result audit fields (`templateSource`, `templateVersionId`, …).
+
+## End-to-end flow
+
+```text
+upload XLSX
+  -> inspect workbook
+  -> map fields
+  -> validate mapping (warn mode)
+  -> create-version (store binary + strict validate + persist metadata)
+  -> activate (optional, or activate later)
+  -> generate Commercial Proposal using ACTIVE custom XLSX
+  -> result metadata records which template was used
+```
 
 ## Mapping schema (`1.0`)
 
@@ -53,150 +74,107 @@ Existing `AGGREGATE_V2` generation is unchanged.
 }
 ```
 
-### Scalar bindings
+### Validation modes
 
-- `fieldPath` must be in the Commercial Proposal allowlist
-  (`src/modules/commercial-proposals/domain/templates/xlsx-template-fields.ts`).
-- `cell` must be valid A1 notation.
-- Duplicate target cells are rejected.
+| Mode | Route | Unknown sheet / vertical merge / Excel Table on template row |
+|---|---|---|
+| `warn` | `/validate-mapping` | warnings |
+| `strict` | `/create-version` | hard errors |
 
-### Table bindings (`content.workItems`)
-
-1. Locate `sheetName` and `templateRow`.
-2. For N items, insert `N - 1` rows below the template row (`insertRowsAndShiftDown`).
-3. Copy row height / cell styles / number formats from the template row.
-4. Preserve formulas where possible (LibreOffice recalculates on PDF export;
-   Excel recalculates on open via fullCalcOnLoad when supported).
-5. Write each bound column field into each generated row.
-6. Content below the table shifts down with the insert.
-
-`minRows` is `0` or `1` (default `1`). Empty work items with `minRows: 1`
-keep one blank template row.
-
-Required work-item columns for validation: `name`, `quantity`, and either
-`unitPrice` or `lineAmount`.
+Backend validation is authoritative.
 
 ## Ownership
 
 | Layer | Owns |
 |---|---|
-| Commercial Proposals | field registry, business mapping validation, template version domain model, routes |
-| Documents | A1 helpers, structural mapping schema, inspect/render contracts, HTTP adapter |
-| document-service | XLSX parse/inspect, custom render + row expansion, built-in templates, PDF |
+| Commercial Proposals | field registry, business mapping validation, template metadata objects, repository, routes, generation selection |
+| Documents | A1 helpers, structural mapping schema, inspect/store/render contracts, HTTP adapter |
+| document-service | XLSX parse/inspect/store, custom render + row expansion, built-in templates, PDF, object storage |
+
+## Persistence
+
+Metadata objects:
+
+- `CommercialProposalXlsxTemplate` — logical template family
+- `CommercialProposalXlsxTemplateVersion` — immutable uploaded version
+
+Binary storage:
+
+- Request may include base64 **in transit only**
+- `POST /v1/xlsx-templates/store` writes bytes to object storage
+- Metadata stores `storageKey` + `fileSha256` + workbook metadata + mapping
+- **No long-term base64** in Twenty metadata
+
+Persistence status: **implemented** (`XLSX_TEMPLATE_PERSISTENCE_STATUS = 'implemented'`).
+
+Activation is best-effort across non-transactional Twenty writes: after activate,
+only one global ACTIVE version should remain; concurrent activates may briefly
+diverge until the next successful activate.
 
 ## Routes (authenticated)
 
-```text
-POST /s/commercial-proposal-templates/inspect-xlsx
-POST /s/commercial-proposal-templates/validate-mapping
-```
+| Route | Behavior |
+|---|---|
+| `POST /s/commercial-proposal-templates/inspect-xlsx` | inspect via document-service |
+| `POST /s/commercial-proposal-templates/validate-mapping` | business + warn-mode workbook checks |
+| `POST /s/commercial-proposal-templates/create-version` | store XLSX, strict validate, persist version, optional activate |
+| `POST /s/commercial-proposal-templates/list` | list families/versions + active summary |
+| `POST /s/commercial-proposal-templates/activate` | activate existing version by id |
 
-Inspect proxies to document-service `POST /v1/xlsx-templates/inspect`.
+document-service:
 
-Validate-mapping is pure app-side validation (no persistence).
+| Route | Behavior |
+|---|---|
+| `POST /v1/xlsx-templates/inspect` | workbook metadata + optional preview |
+| `POST /v1/xlsx-templates/store` | validate, store binary, return storageKey/sha256/workbook |
 
-## Payload extension
+## Generation + audit
 
-`DocumentGenerationPayloadV2` may optionally include:
+`generateCommercialProposalDocuments` loads `getActiveVersion()` for AGGREGATE_V2:
 
-```ts
-templateRenderConfig?: {
-  templateSource: 'custom-xlsx';
-  templateVersionId: string;
-  templateFile: { storageKey; sha256; originalFileName };
-  mapping: XlsxTemplateMapping;
-}
-```
+- active present → pass `templateRenderConfig` into `buildDocumentGenerationPayloadV2`
+- active absent → omit config (built-in)
+- infrastructure failure loading active template → generation fails (no silent fallback)
 
-Generation orchestration does not select a custom template yet (no persistence).
-When a future pass supplies `templateRenderConfig`, document-service renders the
-uploaded workbook instead of the built-in file while still validating proposal
-content with schema `2.0`.
-
-Optional result audit fields (additive only):
+Result metadata (V2, additive):
 
 ```ts
-templateSource?: 'built-in' | 'custom-xlsx'
+templateSource: 'built-in' | 'custom-xlsx'
+templateId?: string
 templateVersionId?: string
 templateFileSha256?: string
 mappingSchemaVersion?: '1.0'
 ```
 
-## Template versioning / persistence decision
+Old generated metadata without these fields remains valid (`hasGenerationResult` unchanged).
 
-Domain types exist:
+## UI
 
-- `CommercialProposalXlsxTemplate`
-- `CommercialProposalXlsxTemplateVersion`
-- `XlsxTemplateRepository` port
+Command menu **Шаблоны КП (XLSX)** opens the builder.
 
-Persistence status: **domain-only** (`XLSX_TEMPLATE_PERSISTENCE_STATUS`).
-
-Routes:
-
-| Route | Status |
-|---|---|
-| `POST /s/commercial-proposal-templates/inspect-xlsx` | implemented |
-| `POST /s/commercial-proposal-templates/validate-mapping` | implemented |
-| `POST /s/commercial-proposal-templates/create-version` | validates mapping, then `FEATURE_NOT_IMPLEMENTED` |
-| `POST /s/commercial-proposal-templates/list` | `FEATURE_NOT_IMPLEMENTED` |
-| `POST /s/commercial-proposal-templates/activate` | `FEATURE_NOT_IMPLEMENTED` |
-
-UI: command menu **Шаблоны КП (XLSX)** opens the form-based builder
-(`src/front-components/commercial-proposal-xlsx-template-builder.front-component.tsx`).
+- Save as draft / Save and activate call create-version
+- List panel shows active version and saved versions; Activate on non-active rows
+- Preview / cell picker unchanged
+- Manual mapping JSON advanced panel remains
 
 User guide: `docs/modules/commercial-proposals/xlsx-template-builder-user-guide.md`.
-
-## UI flow
-
-1. Upload display name + `.xlsx` (max 5 MB) → inspect via document-service.
-2. Review workbook metadata (sheets, dimensions, merges); choose default sheet.
-3. Configure scalar bindings (grouped Proposal / Customer / Contractor / Content).
-4. Configure `content.workItems` table: sheet, template row, column cells on that row.
-5. Validate via backend; Save/Activate call create-version and surface persistence TODO.
-
-Generation still uses the built-in template until an active custom version can be stored.
-
-## Spreadsheet preview & cell picker
-
-Inspect returns an optional bounded `preview` matrix per sheet
-(max 80 rows × 30 columns, display values truncated to 120 chars).
-
-UI:
-
-- lightweight scrollable grid (not Excel);
-- **Pick cell** for scalar bindings;
-- **Pick template row** + **Pick cell** for work-items columns;
-- highlights for mapped scalar/table cells, template row, duplicates, merged/outside-preview warnings;
-- manual A1 inputs remain available as fallback;
-- single-cell named ranges can be clicked when present.
-
-Formula cells are marked (`hasFormula`); formulas are **not** calculated in the browser.
-Charts/images are not rendered.
 
 ## Preparing an XLSX template
 
 1. Use `.xlsx` only (not password-protected, not `.xlsm`).
 2. Put one sample product row where the table should expand.
 3. Prefer horizontal merges only on that template row; vertical merges across
-   the template row are rejected.
-4. Do not place the template row inside an Excel Table (ListObject) in MVP —
-   those are rejected to avoid silent corruption.
+   the template row are rejected on save/render.
+4. Do not place the template row inside an Excel Table (ListObject) — rejected.
 5. Put totals / signatures below the template row so inserts shift them down.
-6. Keep row formulas on the template row (e.g. `=C15*D15`); they are copied and
-   row-shifted for inserted rows. openpyxl does not evaluate formulas.
+6. Keep row formulas on the template row; they are copied and row-shifted.
 
 ## Limitations (MVP)
 
-- No visual grid / cell picker UI beyond the lightweight preview (not Excel).
-- No full spreadsheet editing / formula calculation in browser.
-- Charts/images are not rendered in preview.
-- Large sheets are truncated to 80×30 for preview.
-- No per-proposal template picker UI yet (built-in remains default).
-- No template binary persistence / activate workflow yet.
-- Vertical merges and Excel Tables on the template row are rejected at render.
-- `content.plan` is allowed in the mapping schema but product UX focuses on
-  `workItems` first.
+- Preview is not a full Excel editor (no charts/images; 80×30 truncation).
+- No per-proposal template picker (future P1).
+- Concurrent activate is best-effort only.
+- `content.plan` is allowed in schema but product UX focuses on `workItems`.
 
 ## Related docs
 

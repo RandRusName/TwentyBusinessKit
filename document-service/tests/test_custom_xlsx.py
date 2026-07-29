@@ -9,8 +9,12 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 
-from mikoton_document_service.custom_xlsx import inspect_xlsx, render_custom_xlsx
-from mikoton_document_service.generator import DocumentGenerationError
+from mikoton_document_service.custom_xlsx import (
+    inspect_xlsx,
+    render_custom_xlsx,
+    store_xlsx_template,
+)
+from mikoton_document_service.generator import DocumentGenerationError, LocalDocumentStorage
 
 
 def _workbook_bytes() -> bytes:
@@ -227,6 +231,67 @@ class CustomXlsxTests(unittest.TestCase):
                 template_file_base64=base64.b64encode(b"not-a-zip").decode("ascii"),
                 original_file_name="demo.xlsx",
             )
+
+    def test_store_xlsx_template(self) -> None:
+        data = _workbook_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = LocalDocumentStorage(Path(tmp) / "storage", "")
+            result = store_xlsx_template(
+                template_file_base64=base64.b64encode(data).decode("ascii"),
+                original_file_name="demo.xlsx",
+                storage=storage,
+                expected_sha256=hashlib.sha256(data).hexdigest(),
+            )
+            self.assertEqual(result["status"], "success")
+            self.assertEqual(result["sha256"], hashlib.sha256(data).hexdigest())
+            self.assertTrue(result["storageKey"].startswith("xlsx-templates/"))
+            self.assertTrue(storage.exists(storage_key=result["storageKey"]))
+            stored = storage.get_bytes(storage_key=result["storageKey"])
+            self.assertEqual(stored, data)
+            self.assertNotIn("preview", result["workbook"]["sheets"][0])
+
+    def test_load_by_storage_key_and_sha256(self) -> None:
+        from mikoton_document_service.custom_xlsx import load_template_bytes_from_render_config
+
+        data = _workbook_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            storage = LocalDocumentStorage(Path(tmp) / "storage", "")
+            stored = store_xlsx_template(
+                template_file_base64=base64.b64encode(data).decode("ascii"),
+                original_file_name="demo.xlsx",
+                storage=storage,
+            )
+            loaded = load_template_bytes_from_render_config(
+                {
+                    "templateSource": "custom-xlsx",
+                    "templateFile": {
+                        "storageKey": stored["storageKey"],
+                        "sha256": stored["sha256"],
+                        "originalFileName": "demo.xlsx",
+                    },
+                },
+                storage=storage,
+            )
+            self.assertEqual(loaded, data)
+
+    def test_rejects_vertical_merge_on_template_row(self) -> None:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "КП"
+        sheet["B15"] = "item"
+        sheet.merge_cells("A14:A16")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "merged.xlsx"
+            workbook.save(path)
+            data = path.read_bytes()
+            with self.assertRaises(DocumentGenerationError):
+                render_custom_xlsx(
+                    template_bytes=data,
+                    payload=_payload(),
+                    mapping=_mapping(),
+                    output_dir=Path(tmp),
+                    output_file_name="out.xlsx",
+                )
 
 
 if __name__ == "__main__":

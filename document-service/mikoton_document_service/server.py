@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .custom_xlsx import inspect_xlsx, store_xlsx_template
 from .generator import (
     DocumentGenerationError,
     config_from_environment,
@@ -16,7 +17,6 @@ from .generator import (
     readiness,
     resolve_template_paths,
 )
-from .custom_xlsx import inspect_xlsx
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -107,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/v1/xlsx-templates/inspect":
             return self._handle_inspect()
+        if path == "/v1/xlsx-templates/store":
+            return self._handle_store()
         if path != "/v1/commercial-proposals/generate":
             return self._json(404, {"status": "failed", "error": {"code": "NOT_FOUND", "message": "Not found"}})
 
@@ -218,6 +220,51 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(status, {"status": "failed", "error": {"code": exc.code, "message": str(exc)}})
         except Exception:
             _safe_log("xlsx_inspect_failed", requestId=request_id, errorCode="INTERNAL_ERROR", result="failed")
+            return self._json(500, {"status": "failed", "error": {"code": "INTERNAL_ERROR", "message": "Internal error"}})
+
+    def _handle_store(self) -> None:
+        request_id = self.headers.get("x-request-id") or str(uuid.uuid4())
+        expected_secret = _configured_secret()
+        if expected_secret is None:
+            if not _allow_insecure_local_dev():
+                return self._json(503, {"status": "failed", "error": {"code": "SERVICE_NOT_READY", "message": "Service is not ready"}})
+        authorization = self.headers.get("authorization", "")
+        if expected_secret is not None and not _is_authorized(authorization, expected_secret):
+            return self._json(401, {"status": "failed", "error": {"code": "UNAUTHORIZED", "message": "Unauthorized"}})
+
+        max_bytes = max(_max_request_bytes(), 12 * 1024 * 1024)
+        try:
+            raw_length = self.headers.get("content-length")
+            if raw_length is None:
+                return self._json(411, {"status": "failed", "error": {"code": "PAYLOAD_INVALID", "message": "Content-Length is required"}})
+            length = int(raw_length)
+            if length < 0 or length > max_bytes:
+                return self._json(413, {"status": "failed", "error": {"code": "PAYLOAD_TOO_LARGE", "message": "Request body is too large"}})
+            raw_body = self.rfile.read(length)
+            request = json.loads(raw_body.decode("utf-8"))
+            if not isinstance(request, dict):
+                raise DocumentGenerationError("PAYLOAD_INVALID", "Request body must be an object")
+            config = config_from_environment(PROJECT_ROOT)
+            expected = request.get("expectedSha256")
+            result = store_xlsx_template(
+                template_file_base64=str(request.get("templateFileBase64") or ""),
+                original_file_name=str(request.get("originalFileName") or ""),
+                storage=config.storage,
+                expected_sha256=str(expected) if isinstance(expected, str) and expected.strip() != "" else None,
+            )
+            _safe_log(
+                "xlsx_store_success",
+                requestId=request_id,
+                storageKey=result.get("storageKey"),
+                result="success",
+            )
+            return self._json(200, result)
+        except DocumentGenerationError as exc:
+            status = 413 if exc.code == "PAYLOAD_TOO_LARGE" else 503 if exc.code == "DOCUMENT_STORAGE_FAILED" else 400
+            _safe_log("xlsx_store_failed", requestId=request_id, errorCode=exc.code, result="failed")
+            return self._json(status, {"status": "failed", "error": {"code": exc.code, "message": str(exc)}})
+        except Exception:
+            _safe_log("xlsx_store_failed", requestId=request_id, errorCode="INTERNAL_ERROR", result="failed")
             return self._json(500, {"status": "failed", "error": {"code": "INTERNAL_ERROR", "message": "Internal error"}})
 
 

@@ -6,9 +6,9 @@ import type {
 /**
  * Domain model for user-configurable Commercial Proposal XLSX templates.
  *
- * Persistence (Twenty custom objects / object storage) is intentionally not
- * wired in this foundation pass. Upload creates a new immutable version;
- * generated proposals should record which version/mapping was used.
+ * Persistence: Twenty custom objects store metadata only (storageKey + sha256 +
+ * mapping + workbook metadata). XLSX binaries live in document-service object
+ * storage. Generation uses the single global ACTIVE version when present.
  */
 
 export type CommercialProposalXlsxTemplateStatus =
@@ -19,6 +19,7 @@ export type CommercialProposalXlsxTemplateStatus =
 export type CommercialProposalXlsxTemplate = {
   id: string;
   displayName: string;
+  description?: string | null;
   status: CommercialProposalXlsxTemplateStatus;
   activeVersionId: string | null;
   createdAt: string;
@@ -31,6 +32,7 @@ export type CommercialProposalXlsxTemplateVersion = {
   version: number;
   status: CommercialProposalXlsxTemplateStatus;
   displayName: string;
+  description?: string | null;
   originalFileName: string;
   fileSha256: string;
   storageKey: string;
@@ -38,6 +40,7 @@ export type CommercialProposalXlsxTemplateVersion = {
   mapping: XlsxTemplateMapping;
   createdAt: string;
   updatedAt: string;
+  activatedAt: string | null;
 };
 
 /**
@@ -53,10 +56,7 @@ export type CommercialProposalGeneratedTemplateAudit = {
 };
 
 /**
- * Persistence TODO (next pass):
- * - CommercialProposalXlsxTemplate / Version metadata objects
- * - object-storage upload for template binaries
- * - create-version / list / activate logic functions
- * - optional CommercialProposal.xlsxTemplateVersionId field
+ * Persistence is implemented via CommercialProposalXlsxTemplate /
+ * CommercialProposalXlsxTemplateVersion metadata + document-service storage.
  */
-export const XLSX_TEMPLATE_PERSISTENCE_STATUS = 'domain-only' as const;
+export const XLSX_TEMPLATE_PERSISTENCE_STATUS = 'implemented' as const;

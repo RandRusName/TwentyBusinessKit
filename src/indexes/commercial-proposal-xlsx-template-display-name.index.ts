@@ -1,0 +1,23 @@
+import { defineIndex } from 'twenty-sdk/define';
+
+import {
+  COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_FIELD_DISPLAY_NAME_UNIVERSAL_IDENTIFIER,
+  COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_INDEX_DISPLAY_NAME_UNIVERSAL_IDENTIFIER,
+  COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_OBJECT_UNIVERSAL_IDENTIFIER,
+} from 'src/constants/universal-identifiers';
+
+export default defineIndex({
+  universalIdentifier:
+    COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_INDEX_DISPLAY_NAME_UNIVERSAL_IDENTIFIER,
+  objectUniversalIdentifier:
+    COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_OBJECT_UNIVERSAL_IDENTIFIER,
+  indexType: 'BTREE',
+  isUnique: false,
+  fields: [
+    {
+      universalIdentifier: '8c2b8c16-b239-483e-b766-fcd179da882c',
+      fieldUniversalIdentifier:
+        COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_FIELD_DISPLAY_NAME_UNIVERSAL_IDENTIFIER,
+    },
+  ],
+});

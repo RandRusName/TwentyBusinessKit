@@ -34,6 +34,7 @@ export type ApplicationErrorCode =
   | 'DOCUMENT_STORAGE_FAILED'
   | 'PDF_EXPORT_FAILED'
   | 'FEATURE_NOT_IMPLEMENTED'
+  | 'XLSX_TEMPLATE_NOT_FOUND'
   | 'INTERNAL_ERROR';
 
 export class ApplicationError extends Error {

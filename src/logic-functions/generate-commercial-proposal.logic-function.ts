@@ -8,6 +8,7 @@ import {
   toApplicationError,
 } from 'src/logic-functions/http-response';
 import { HttpDocumentServiceAdapter } from 'src/modules/documents';
+import { TwentyXlsxTemplateRepository } from 'src/modules/commercial-proposals';
 import { TwentyRecordRepository } from 'src/services/twenty-record-repository';
 import {
   generateCommercialProposalDocuments,
@@ -33,6 +34,7 @@ const handler = async (
       ),
       repository: new TwentyRecordRepository(),
       documentClient: new HttpDocumentServiceAdapter(),
+      xlsxTemplateRepository: new TwentyXlsxTemplateRepository(),
     });
 
     logger.success({ statusAfter: result.commercialProposal.status });

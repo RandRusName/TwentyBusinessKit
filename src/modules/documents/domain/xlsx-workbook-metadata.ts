@@ -25,6 +25,8 @@ export type XlsxSheetMetadata = {
   maxColumn: number;
   mergedRanges: string[];
   namedRanges: XlsxNamedRange[];
+  /** Excel Tables / ListObjects detected on the sheet (if any). */
+  tables?: Array<{ name: string; ref: string }>;
   /** Optional bounded cell matrix for lightweight UI preview/cell picker. */
   preview?: XlsxSheetPreview;
 };

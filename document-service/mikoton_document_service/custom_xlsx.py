@@ -4,6 +4,7 @@ import base64
 import hashlib
 import io
 import re
+import uuid
 from copy import copy
 from pathlib import Path
 from typing import Any
@@ -189,6 +190,11 @@ def inspect_xlsx(*, template_file_base64: str, original_file_name: str) -> dict[
         merges = [str(range_) for range_ in sheet.merged_cells.ranges]
         max_row = sheet.max_row or 1
         max_column = sheet.max_column or 1
+        tables_meta = []
+        for table_name, table in (getattr(sheet, "tables", {}) or {}).items():
+            ref = getattr(table, "ref", None)
+            if ref:
+                tables_meta.append({"name": str(table_name), "ref": str(ref)})
         sheets_meta.append(
             {
                 "name": sheet.title,
@@ -196,6 +202,7 @@ def inspect_xlsx(*, template_file_base64: str, original_file_name: str) -> dict[
                 "maxColumn": int(max_column),
                 "mergedRanges": merges,
                 "namedRanges": named_by_sheet.get(sheet.title, []),
+                "tables": tables_meta,
                 "preview": _build_sheet_preview(sheet),
             }
         )
@@ -204,6 +211,56 @@ def inspect_xlsx(*, template_file_base64: str, original_file_name: str) -> dict[
         "status": "success",
         "workbook": {"sheets": sheets_meta},
         "sha256": _sha256(data),
+    }
+
+
+def store_xlsx_template(
+    *,
+    template_file_base64: str,
+    original_file_name: str,
+    storage: Any,
+    expected_sha256: str | None = None,
+) -> dict[str, Any]:
+    _assert_xlsx_filename(original_file_name)
+    data = _decode_base64_file(template_file_base64)
+    actual_sha = _sha256(data)
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+            raise DocumentGenerationError("PAYLOAD_INVALID", "expectedSha256 must be a sha256 hex digest")
+        if actual_sha != expected_sha256:
+            raise DocumentGenerationError("PAYLOAD_INVALID", "expectedSha256 does not match template bytes")
+
+    workbook = _open_workbook(data)
+    visible = _visible_sheets(workbook)
+    if len(visible) == 0:
+        raise DocumentGenerationError("PAYLOAD_INVALID", "workbook must contain at least one visible sheet")
+
+    # Reuse inspect metadata shape (without preview to keep store payload smaller).
+    inspect_result = inspect_xlsx(
+        template_file_base64=template_file_base64,
+        original_file_name=original_file_name,
+    )
+    workbook_meta = inspect_result["workbook"]
+    for sheet in workbook_meta.get("sheets", []):
+        if isinstance(sheet, dict):
+            sheet.pop("preview", None)
+
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", original_file_name.strip())[:120] or "template.xlsx"
+    if not safe_name.lower().endswith(".xlsx"):
+        safe_name = f"{safe_name}.xlsx"
+
+    storage_key = f"xlsx-templates/{actual_sha[:16]}/{uuid.uuid4().hex}/{safe_name}"
+    storage.put_bytes(
+        data=data,
+        storage_key=storage_key,
+        content_type=XLSX_CONTENT_TYPE,
+    )
+
+    return {
+        "status": "success",
+        "storageKey": storage_key,
+        "sha256": actual_sha,
+        "workbook": workbook_meta,
     }
 
 

@@ -4,10 +4,13 @@ import { type RoutePayload } from 'twenty-sdk/logic-function';
 import { CREATE_COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_VERSION_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import {
   failure,
+  json,
   toApplicationError,
 } from 'src/logic-functions/http-response';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
-import { validateCommercialProposalXlsxTemplateMapping } from 'src/modules/commercial-proposals';
+import { createPersistedXlsxTemplateVersion } from 'src/modules/commercial-proposals';
+import { TwentyXlsxTemplateRepository } from 'src/modules/commercial-proposals';
+import { HttpDocumentServiceAdapter } from 'src/modules/documents';
 import { ApplicationError } from 'src/modules/foundation';
 
 type CreateVersionRequest = {
@@ -18,10 +21,8 @@ type CreateVersionRequest = {
   workbook?: unknown;
   mapping?: unknown;
   activate?: boolean;
+  expectedSha256?: string;
 };
-
-const PERSISTENCE_MESSAGE =
-  'Commercial Proposal XLSX template persistence is not implemented yet. Inspect and validate mappings are available; create-version will land with object-storage + metadata objects.';
 
 const handler = async (event: RoutePayload<CreateVersionRequest>) => {
   const logger = createLogicFunctionLogger(
@@ -52,19 +53,50 @@ const handler = async (event: RoutePayload<CreateVersionRequest>) => {
       throw new ApplicationError('INVALID_INPUT', 'contentBase64 is required');
     }
 
-    const mappingResult = validateCommercialProposalXlsxTemplateMapping(
-      body.mapping,
-    );
-    if (!mappingResult.ok) {
-      throw new ApplicationError(
-        'COMMERCIAL_PROPOSAL_VALIDATION_FAILED',
-        mappingResult.issues.map((issue) => issue.message).join('; '),
-        undefined,
-        mappingResult.issues[0],
-      );
-    }
+    const documentClient = new HttpDocumentServiceAdapter();
+    const templateVersion = await createPersistedXlsxTemplateVersion({
+      input: {
+        displayName: body.displayName,
+        description:
+          typeof body.description === 'string' ? body.description : undefined,
+        originalFileName: body.originalFileName,
+        contentBase64: body.contentBase64,
+        mapping: body.mapping,
+        activate: body.activate === true,
+        requestId: logger.requestId,
+        expectedSha256:
+          typeof body.expectedSha256 === 'string'
+            ? body.expectedSha256
+            : undefined,
+      },
+      repository: new TwentyXlsxTemplateRepository(),
+      storage: {
+        storeXlsxTemplate: (input) => documentClient.storeXlsxTemplate(input),
+      },
+    });
 
-    throw new ApplicationError('FEATURE_NOT_IMPLEMENTED', PERSISTENCE_MESSAGE);
+    logger.success({
+      templateVersionId: templateVersion.id,
+      version: templateVersion.version,
+      status: templateVersion.status,
+    });
+
+    return json({
+      status: 'success',
+      requestId: logger.requestId,
+      templateVersion: {
+        id: templateVersion.id,
+        templateId: templateVersion.templateId,
+        version: templateVersion.version,
+        status: templateVersion.status,
+        displayName: templateVersion.displayName,
+        originalFileName: templateVersion.originalFileName,
+        fileSha256: templateVersion.fileSha256,
+        storageKey: templateVersion.storageKey,
+        createdAt: templateVersion.createdAt,
+        activatedAt: templateVersion.activatedAt,
+      },
+    });
   } catch (error) {
     const applicationError = toApplicationError(error);
     logger.failure(applicationError.code);
@@ -77,8 +109,8 @@ export default defineLogicFunction({
     CREATE_COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_VERSION_LOGIC_FUNCTION_UNIVERSAL_IDENTIFIER,
   name: 'Create Commercial Proposal XLSX Template Version',
   description:
-    'Creates a new immutable XLSX template version (persistence pending)',
-  timeoutSeconds: 30,
+    'Stores an uploaded XLSX template in object storage and creates an immutable version record',
+  timeoutSeconds: 60,
   httpRouteTriggerSettings: {
     path: '/commercial-proposal-templates/create-version',
     httpMethod: HTTPMethod.POST,

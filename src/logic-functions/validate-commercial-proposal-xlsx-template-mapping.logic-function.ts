@@ -8,74 +8,16 @@ import {
   toApplicationError,
 } from 'src/logic-functions/http-response';
 import { createLogicFunctionLogger } from 'src/logic-functions/logic-function-logger';
-import { validateCommercialProposalXlsxTemplateMapping } from 'src/modules/commercial-proposals';
+import {
+  validateCommercialProposalXlsxTemplateMapping,
+  validateXlsxTemplateMappingAgainstWorkbook,
+} from 'src/modules/commercial-proposals';
 import { ApplicationError } from 'src/modules/foundation';
-import type {
-  XlsxTemplateMapping,
-  XlsxWorkbookMetadata,
-} from 'src/modules/documents';
+import type { XlsxWorkbookMetadata } from 'src/modules/documents';
 
 type ValidateRequest = {
   mapping?: unknown;
   workbook?: XlsxWorkbookMetadata;
-};
-
-const collectWorkbookWarnings = (
-  mapping: XlsxTemplateMapping,
-  workbook: XlsxWorkbookMetadata | undefined,
-) => {
-  const warnings: Array<{ code: string; message: string; path?: string }> = [];
-  if (workbook === undefined || !Array.isArray(workbook.sheets)) {
-    return warnings;
-  }
-
-  const sheetNames = new Set(workbook.sheets.map((sheet) => sheet.name));
-  for (const [index, binding] of mapping.scalarBindings.entries()) {
-    if (!sheetNames.has(binding.sheetName)) {
-      warnings.push({
-        code: 'UNKNOWN_SHEET',
-        path: `scalarBindings[${index}].sheetName`,
-        message: `Sheet '${binding.sheetName}' was not found in inspected workbook`,
-      });
-    }
-  }
-  for (const [index, binding] of mapping.tableBindings.entries()) {
-    if (!sheetNames.has(binding.sheetName)) {
-      warnings.push({
-        code: 'UNKNOWN_SHEET',
-        path: `tableBindings[${index}].sheetName`,
-        message: `Sheet '${binding.sheetName}' was not found in inspected workbook`,
-      });
-    }
-
-    const sheet = workbook.sheets.find(
-      (candidate) => candidate.name === binding.sheetName,
-    );
-    if (sheet === undefined) {
-      continue;
-    }
-    const templateRowMerges = sheet.mergedRanges.filter((range) => {
-      const match = /^[A-Z]+(\d+):[A-Z]+(\d+)$/i.exec(range.replace(/\$/g, ''));
-      if (match === null) return false;
-      const start = Number(match[1]);
-      const end = Number(match[2]);
-      return (
-        start !== end &&
-        start <= binding.templateRow &&
-        binding.templateRow <= end
-      );
-    });
-    if (templateRowMerges.length > 0) {
-      warnings.push({
-        code: 'VERTICAL_MERGE_ON_TEMPLATE_ROW',
-        path: `tableBindings[${index}].templateRow`,
-        message:
-          'Merged cells spanning multiple rows on the template row may be rejected during render',
-      });
-    }
-  }
-
-  return warnings;
 };
 
 const handler = async (event: RoutePayload<ValidateRequest>) => {
@@ -97,15 +39,16 @@ const handler = async (event: RoutePayload<ValidateRequest>) => {
       );
     }
 
-    const warnings = collectWorkbookWarnings(
-      result.mapping,
-      event.body?.workbook,
-    );
+    const workbookResult = validateXlsxTemplateMappingAgainstWorkbook({
+      mapping: result.mapping,
+      workbook: event.body?.workbook,
+      mode: 'warn',
+    });
 
     logger.success({
       scalarBindings: result.mapping.scalarBindings.length,
       tableBindings: result.mapping.tableBindings.length,
-      warningCount: warnings.length,
+      warningCount: workbookResult.warnings.length,
     });
 
     return json({
@@ -113,7 +56,7 @@ const handler = async (event: RoutePayload<ValidateRequest>) => {
       valid: true as const,
       requestId: logger.requestId,
       mapping: result.mapping,
-      warnings,
+      warnings: workbookResult.warnings,
     });
   } catch (error) {
     const applicationError = toApplicationError(error);

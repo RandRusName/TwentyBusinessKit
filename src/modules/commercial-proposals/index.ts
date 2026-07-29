@@ -15,8 +15,12 @@ export type {
   CreateXlsxTemplateVersionInput,
   XlsxTemplateRepository,
   XlsxTemplateSummary,
+  XlsxTemplateVersionDetail,
   XlsxTemplateVersionSummary,
 } from './application/xlsx-template-repository';
+
+export { createPersistedXlsxTemplateVersion } from './application/create-persisted-xlsx-template-version';
+export { TwentyXlsxTemplateRepository } from './infrastructure/twenty-xlsx-template.repository';
 
 export {
   COMMERCIAL_PROPOSAL_XLSX_TEMPLATE_FIELDS,
@@ -35,6 +39,13 @@ export {
   validateCommercialProposalXlsxTemplateMapping,
   type XlsxTemplateMappingValidationResult,
 } from './domain/templates/validate-xlsx-template-mapping';
+
+export {
+  validateXlsxTemplateMappingAgainstWorkbook,
+  type XlsxTemplateWorkbookValidationIssue,
+  type XlsxTemplateWorkbookValidationMode,
+  type XlsxTemplateWorkbookValidationResult,
+} from './domain/templates/validate-xlsx-template-mapping-against-workbook';
 
 export {
   XLSX_TEMPLATE_PERSISTENCE_STATUS,

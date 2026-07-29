@@ -40,8 +40,11 @@ content.workItems table:
    a preview cell.
 4. **Items table** — enable `content.workItems`, set template row (or
    **Pick template row**), map columns (**Pick cell** on the template row).
-5. **Validate & Save** — call backend validation. Save/activate is blocked until
-   persistence is implemented (`FEATURE_NOT_IMPLEMENTED`).
+5. **Validate & Save** — validate mapping, then **Save as draft** or
+   **Save and activate**.
+
+The top panel shows the currently ACTIVE template (if any) and saved versions.
+You can activate an existing version without re-uploading.
 
 ### Cell picker tips
 
@@ -53,13 +56,18 @@ content.workItems table:
 - Formula cells show a `ƒ` marker; values are not recalculated in the browser.
 - Charts/images are not shown; large sheets are truncated (80×30).
 
-## After activation (future)
+## After save / activate
 
-When persistence lands:
-
-- Save creates an immutable template version (file in object storage + mapping).
-- Activate marks one version as the default custom template.
-- New generations use the active custom template; built-in remains fallback.
+- Save creates an immutable template version:
+  - XLSX binary → object storage (`storageKey` + sha256)
+  - mapping + workbook metadata → Twenty metadata (no long-term base64)
+- Activate marks one version as the global ACTIVE custom template.
+- New generations use the ACTIVE custom template when present.
+- If none is ACTIVE, generation uses the built-in Mikoton v2 template.
 - Generated file metadata records `templateSource`, `templateVersionId`, sha256.
 
-Until then, generation always uses the built-in Mikoton template.
+## Not in this MVP
+
+- Per-proposal template picker (coming later)
+- Full Excel editing in the browser
+- DOCX templates

@@ -75,12 +75,12 @@ not a live link into saved proposals.
 - Requires server-side `DOCUMENT_SERVICE_URL` and `DOCUMENT_SERVICE_SECRET`.
 - Details: `docs/document-generation.md`, `docs/template-mapping-v*.md`,
   `docs/document-service-runbook.md`.
-- **XLSX template builder foundation** (field registry, mapping validation,
-  inspect route, custom row-expansion renderer):  
+- **XLSX template builder** (field registry, mapping validation, persistence,
+  active custom generation, preview/cell picker):
   `docs/modules/commercial-proposals/xlsx-template-builder.md`.
-- **Builder UI / user guide**: command menu **Шаблоны КП (XLSX)**;  
+- **Builder UI / user guide**: command menu **Шаблоны КП (XLSX)**;
   `docs/modules/commercial-proposals/xlsx-template-builder-user-guide.md`.
-  Built-in template remains the default until a custom template can be persisted.
+  Global ACTIVE custom XLSX is used when present; otherwise built-in v2.
 
 ## Limitations / not in this module
 

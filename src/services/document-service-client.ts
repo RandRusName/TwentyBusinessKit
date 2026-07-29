@@ -403,4 +403,99 @@ export class HttpDocumentServiceClient implements DocumentGenerationClient {
       clearTimeout(timeout);
     }
   }
+
+  async storeXlsxTemplate(request: {
+    templateFileBase64: string;
+    originalFileName: string;
+    expectedSha256?: string;
+    requestId?: string;
+  }) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl.replace(/\/$/, '')}/v1/xlsx-templates/store`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${this.secret}`,
+            'content-type': 'application/json',
+            ...(request.requestId === undefined
+              ? {}
+              : { 'x-request-id': request.requestId }),
+          },
+          body: JSON.stringify({
+            templateFileBase64: request.templateFileBase64,
+            originalFileName: request.originalFileName,
+            ...(request.expectedSha256 === undefined
+              ? {}
+              : { expectedSha256: request.expectedSha256 }),
+          }),
+          signal: controller.signal,
+        },
+      );
+
+      const responseText = await response.text();
+      const responseBody = parseJsonResponse(responseText);
+
+      if (!response.ok) {
+        const failure = isObject(responseBody) ? responseBody : null;
+        const errorCode =
+          isObject(failure?.error) && typeof failure.error.code === 'string'
+            ? mapServiceErrorCode(response.status, failure.error.code)
+            : mapServiceErrorCode(response.status, undefined);
+
+        throw new ApplicationError(
+          errorCode,
+          (isObject(failure?.error) && typeof failure.error.message === 'string'
+            ? failure.error.message
+            : null) ?? `Document service failed with HTTP ${response.status}`,
+        );
+      }
+
+      if (
+        !isObject(responseBody) ||
+        responseBody.status !== 'success' ||
+        typeof responseBody.sha256 !== 'string' ||
+        !SHA256_REGEX.test(responseBody.sha256) ||
+        typeof responseBody.storageKey !== 'string' ||
+        responseBody.storageKey.trim() === '' ||
+        !isObject(responseBody.workbook) ||
+        !Array.isArray(responseBody.workbook.sheets)
+      ) {
+        throw new ApplicationError(
+          'DOCUMENT_SERVICE_INVALID_RESPONSE',
+          'Document service returned an invalid store response',
+        );
+      }
+
+      return {
+        status: 'success' as const,
+        storageKey: responseBody.storageKey,
+        sha256: responseBody.sha256,
+        workbook: responseBody.workbook as XlsxWorkbookMetadata,
+      };
+    } catch (error) {
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ApplicationError(
+          'DOCUMENT_SERVICE_TIMEOUT',
+          'Document service request timed out',
+          error,
+        );
+      }
+
+      throw new ApplicationError(
+        'DOCUMENT_SERVICE_UNAVAILABLE',
+        'Document service is unavailable',
+        error,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 }

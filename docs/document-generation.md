@@ -77,6 +77,15 @@ CommercialProposal DRAFT / FAILED
 
 Aggregate proposals use macro-free XLSX template v2 and schema `2.0`. It supports 50 items and 10 stages, keeps percentage formulas and server-calculated cached totals, and is exported to PDF by LibreOffice. Legacy proposals keep the v1 path.
 
+When a global ACTIVE custom XLSX template version exists, AGGREGATE_V2 generation
+passes `templateRenderConfig` (storageKey + sha256 + mapping). document-service
+loads that workbook from object storage and applies scalar/table bindings.
+Otherwise the built-in v2 template is used unchanged. Response `templateCode`
+remains `mikoton-commercial-proposal`; audit fields on result metadata record
+`templateSource` / `templateVersionId` / `templateFileSha256`.
+
+Details: `docs/modules/commercial-proposals/xlsx-template-builder.md`.
+
 Twenty attachment is checkpointed after each format. Retry matches `generationId + format + sha256` and attaches only a missing format. Attachments run only while ownership is held.
 
 Phase 4 uses an external document-service. Twenty App logic functions do not edit Excel files directly and never run VBA.
@@ -87,6 +96,8 @@ Phase 4 uses an external document-service. Twenty App logic functions do not edi
 - Mapping config: `templates/mikoton-commercial-proposal-v1.mapping.json`.
 - Worker code: `document-service/mikoton_document_service`.
 - HTTP endpoint: `POST /v1/commercial-proposals/generate`.
+- XLSX template inspect: `POST /v1/xlsx-templates/inspect`.
+- XLSX template store: `POST /v1/xlsx-templates/store`.
 - Health endpoint: `GET /healthz`.
 - Readiness endpoint: `GET /readyz`.
 - Container: `document-service/Dockerfile`.

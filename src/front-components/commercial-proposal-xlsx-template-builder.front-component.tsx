@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { defineFrontComponent } from 'twenty-sdk/define';
 import { enqueueSnackbar, useColorScheme } from 'twenty-sdk/front-component';
 
@@ -53,6 +53,40 @@ type ValidateResponse = {
   warnings: Array<{ code: string; message: string; path?: string }>;
 };
 
+type TemplateVersionSummary = {
+  id: string;
+  templateId: string;
+  version: number;
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  displayName: string;
+  originalFileName: string;
+  fileSha256: string;
+  storageKey: string;
+  mappingSchemaVersion?: '1.0';
+  createdAt: string;
+  activatedAt: string | null;
+};
+
+type ListTemplatesResponse = {
+  status: 'success';
+  requestId: string;
+  templates: Array<{
+    id: string;
+    displayName: string;
+    status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+    activeVersionId: string | null;
+    updatedAt: string;
+    versions: TemplateVersionSummary[];
+  }>;
+  activeVersion: TemplateVersionSummary | null;
+};
+
+type CreateVersionResponse = {
+  status: 'success';
+  requestId: string;
+  templateVersion: TemplateVersionSummary;
+};
+
 const STEPS: Array<{ id: BuilderStep; label: string }> = [
   { id: 'upload', label: '1. Upload' },
   { id: 'workbook', label: '2. Workbook' },
@@ -99,6 +133,30 @@ const CommercialProposalXlsxTemplateBuilder = () => {
   const [selectedPreviewCell, setSelectedPreviewCell] = useState<string | null>(
     null,
   );
+  const [savedTemplates, setSavedTemplates] = useState<
+    ListTemplatesResponse['templates']
+  >([]);
+  const [activeVersion, setActiveVersion] =
+    useState<TemplateVersionSummary | null>(null);
+  const [lastSavedVersion, setLastSavedVersion] =
+    useState<TemplateVersionSummary | null>(null);
+
+  const loadTemplates = async () => {
+    try {
+      const response = await callAppRoute<ListTemplatesResponse>(
+        '/commercial-proposal-templates/list',
+        {},
+      );
+      setSavedTemplates(response.templates ?? []);
+      setActiveVersion(response.activeVersion ?? null);
+    } catch {
+      // List is informational; builder still works for upload/validate/save.
+    }
+  };
+
+  useEffect(() => {
+    void loadTemplates();
+  }, []);
 
   const sheets = workbookSheetNames(workbook);
   const activePreviewSheetName =
@@ -451,35 +509,75 @@ const CommercialProposalXlsxTemplateBuilder = () => {
     }
   };
 
-  const saveNotImplemented = async (activate: boolean) => {
+  const saveVersion = async (activate: boolean) => {
     setError(null);
     if (validatedMapping === null || contentBase64 === null || file === null) {
       setError('Validate the mapping before saving');
       return;
     }
+    if (displayName.trim() === '') {
+      setError('Display name is required before saving');
+      return;
+    }
 
     setBusy(true);
     try {
-      await callAppRoute('/commercial-proposal-templates/create-version', {
-        displayName: displayName.trim(),
-        description: description.trim() || undefined,
-        originalFileName: file.name,
-        contentBase64,
-        workbook,
-        mapping: validatedMapping,
-        activate,
+      const response = await callAppRoute<CreateVersionResponse>(
+        '/commercial-proposal-templates/create-version',
+        {
+          displayName: displayName.trim(),
+          description: description.trim() || undefined,
+          originalFileName: file.name,
+          contentBase64,
+          workbook,
+          mapping: validatedMapping,
+          activate,
+          expectedSha256: sha256 ?? undefined,
+        },
+      );
+      setLastSavedVersion(response.templateVersion);
+      setRequestId(response.requestId);
+      await loadTemplates();
+      enqueueSnackbar({
+        message: activate
+          ? `Saved and activated v${response.templateVersion.version}`
+          : `Saved draft v${response.templateVersion.version}`,
+        variant: 'success',
       });
     } catch (caught) {
       const message =
         caught instanceof AppRouteError
           ? caught.message
-          : 'Save is not available yet';
+          : 'Failed to save template version';
       setError(message);
       enqueueSnackbar({
-        message:
-          'Template persistence is not implemented yet. Inspect and validate work.',
+        message,
         variant: 'error',
       });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const activateExistingVersion = async (templateVersionId: string) => {
+    setError(null);
+    setBusy(true);
+    try {
+      await callAppRoute('/commercial-proposal-templates/activate', {
+        templateVersionId,
+      });
+      await loadTemplates();
+      enqueueSnackbar({
+        message: 'Template version activated',
+        variant: 'success',
+      });
+    } catch (caught) {
+      const message =
+        caught instanceof AppRouteError
+          ? caught.message
+          : 'Failed to activate template version';
+      setError(message);
+      enqueueSnackbar({ message, variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -489,10 +587,69 @@ const CommercialProposalXlsxTemplateBuilder = () => {
     <div style={styles.root}>
       <h1 style={styles.title}>Commercial Proposal XLSX templates</h1>
       <p style={styles.muted}>
-        Upload a workbook, map proposal fields to cells, configure product-row
-        expansion, then validate. Saving/activating templates will be enabled
-        after persistence is implemented.
+        Upload a workbook, map proposal fields to cells, validate, then save an
+        immutable version. The global ACTIVE version is used for Commercial
+        Proposal generation; without one, the built-in template is used.
       </p>
+
+      <div style={styles.box}>
+        <h2 style={styles.title}>Active template</h2>
+        {activeVersion === null ? (
+          <p style={styles.muted}>
+            No ACTIVE custom template. Generation uses the built-in
+            mikoton-commercial-proposal v2 workbook.
+          </p>
+        ) : (
+          <div style={styles.success}>
+            {activeVersion.displayName} · v{activeVersion.version} ·{' '}
+            {activeVersion.originalFileName}
+            {' · '}
+            sha256 {activeVersion.fileSha256.slice(0, 12)}…
+            {activeVersion.activatedAt
+              ? ` · activated ${activeVersion.activatedAt}`
+              : ''}
+          </div>
+        )}
+        {savedTemplates.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <h3 style={{ ...styles.title, fontSize: 14 }}>
+              Saved versions
+            </h3>
+            {savedTemplates.flatMap((template) =>
+              template.versions.map((version) => (
+                <div
+                  key={version.id}
+                  style={{
+                    ...styles.row,
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                    gap: 8,
+                  }}
+                >
+                  <span style={styles.muted}>
+                    {template.displayName} v{version.version} ·{' '}
+                    {version.status} · {version.originalFileName} ·{' '}
+                    {version.fileSha256.slice(0, 8)}…
+                  </span>
+                  {version.status !== 'ACTIVE' && (
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.buttonSecondary,
+                        ...(busy ? styles.buttonDisabled : {}),
+                      }}
+                      disabled={busy}
+                      onClick={() => void activateExistingVersion(version.id)}
+                    >
+                      Activate
+                    </button>
+                  )}
+                </div>
+              )),
+            )}
+          </div>
+        )}
+      </div>
 
       <div style={styles.steps}>
         {STEPS.map((item) => (
@@ -1000,12 +1157,17 @@ const CommercialProposalXlsxTemplateBuilder = () => {
         <div style={styles.box}>
           {validatedMapping !== null ? (
             <div style={styles.success}>
-              Mapping validated. Save/activate will be available after template
-              persistence is implemented.
+              Mapping validated. You can save a draft or save and activate.
             </div>
           ) : (
             <div style={styles.warning}>
               Run validation from the Items table step first.
+            </div>
+          )}
+          {lastSavedVersion !== null && (
+            <div style={styles.success}>
+              Last saved: v{lastSavedVersion.version} ({lastSavedVersion.status}
+              ) · {lastSavedVersion.storageKey}
             </div>
           )}
           {warnings.length > 0 && (
@@ -1048,7 +1210,7 @@ const CommercialProposalXlsxTemplateBuilder = () => {
                   : {}),
               }}
               disabled={busy || validatedMapping === null}
-              onClick={() => void saveNotImplemented(false)}
+              onClick={() => void saveVersion(false)}
             >
               Save as draft
             </button>
@@ -1061,15 +1223,15 @@ const CommercialProposalXlsxTemplateBuilder = () => {
                   : {}),
               }}
               disabled={busy || validatedMapping === null}
-              onClick={() => void saveNotImplemented(true)}
+              onClick={() => void saveVersion(true)}
             >
               Save and activate
             </button>
           </div>
           <p style={styles.muted}>
-            Persistence is not implemented yet. Save routes return
-            FEATURE_NOT_IMPLEMENTED. Generation continues to use the built-in
-            template until an active custom template can be stored.
+            Save stores the XLSX in object storage and keeps only storageKey +
+            sha256 + mapping in metadata. Activating sets the global ACTIVE
+            template used by generation.
           </p>
         </div>
       )}

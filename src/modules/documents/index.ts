@@ -54,3 +54,9 @@ export type {
   XlsxTemplateInspectRequest,
   XlsxTemplateInspectResult,
 } from './domain/xlsx-template-inspect-port';
+
+export type {
+  XlsxTemplateStoragePort,
+  XlsxTemplateStoreRequest,
+  XlsxTemplateStoreResult,
+} from './domain/xlsx-template-storage-port';
